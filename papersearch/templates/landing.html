@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReFindr - Find Academic Papers Across Multiple Databases</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="min-h-screen" style="background: linear-gradient(135deg, #f5f1e8 0%, #fef7e0 100%);">
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-amber-200">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <nav class="flex justify-between items-center py-4">
+                <a href="#" class="text-2xl font-bold text-amber-900">
+                    <i class="fas fa-search mr-2"></i>ReFindr
+                </a>
+                <div class="flex gap-3">
+                    <a href="{% url 'login' %}" class="bg-transparent border-2 border-amber-900 text-amber-900 hover:bg-amber-900 hover:text-white px-6 py-2 rounded-xl transition-all font-medium">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Login
+                    </a>
+                    <a href="{% url 'signup' %}" class="bg-amber-900 hover:bg-amber-800 text-white px-6 py-2 rounded-xl transition-all font-medium">
+                        <i class="fas fa-user-plus mr-2"></i>Sign Up
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="pt-24 pb-16">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h1 class="text-5xl md:text-7xl font-bold text-amber-900 mb-6 leading-tight">
+                    Search Academic Papers<br>
+                    <span class="bg-gradient-to-r from-amber-700 to-amber-900 bg-clip-text text-transparent">Across All Databases</span>
+                </h1>
+                <p class="text-xl text-amber-800 mb-8 max-w-3xl mx-auto leading-relaxed">
+                    Find research papers from arXiv, Semantic Scholar, PubMed, and more - all in one powerful search. 
+                    Stop switching between platforms and discover the research that matters.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <a href="{% url 'signup' %}" class="bg-amber-900 hover:bg-amber-800 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all transform hover:scale-105 hover:shadow-lg">
+                        <i class="fas fa-rocket mr-2"></i>Get Started Now
+                    </a>
+                    <a href="#features" class="bg-white/80 border-2 border-amber-200 text-amber-900 hover:bg-amber-50 px-8 py-4 rounded-2xl font-semibold text-lg transition-all">
+                        <i class="fas fa-play mr-2"></i>Check Out The Features 
+                    </a>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
+                <div class="text-center bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-amber-200">
+                    <div class="text-3xl font-bold text-amber-900 mb-2">10M+</div>
+                    <div class="text-amber-700">Research Papers</div>
+                </div>
+                <div class="text-center bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-amber-200">
+                    <div class="text-3xl font-bold text-amber-900 mb-2">5+</div>
+                    <div class="text-amber-700">Data Sources</div>
+                </div>
+                <div class="text-center bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-amber-200">
+                    <div class="text-3xl font-bold text-amber-900 mb-2">50K+</div>
+                    <div class="text-amber-700">Researchers</div>
+                </div>
+                <div class="text-center bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-amber-200">
+                    <div class="text-3xl font-bold text-amber-900 mb-2">Free</div>
+                    <div class="text-amber-700">To Start</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-amber-900 mb-4">Why Choose ReFindr?</h2>
+                <p class="text-xl text-amber-800 max-w-3xl mx-auto">
+                    Stop wasting time searching multiple databases. Get comprehensive results from all major academic sources in seconds.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8 mb-16">
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-200 hover:shadow-xl transition-all transform hover:-translate-y-2">
+                    <div class="text-4xl text-amber-900 mb-4">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-amber-900 mb-3">Multiple Sources</h3>
+                    <p class="text-amber-800">Search arXiv, Semantic Scholar, PubMed, Google Scholar, and IEEE Xplore simultaneously from one interface.</p>
+                </div>
+
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-200 hover:shadow-xl transition-all transform hover:-translate-y-2">
+                    <div class="text-4xl text-amber-900 mb-4">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-amber-900 mb-3">Lightning Fast</h3>
+                    <p class="text-amber-800">Get results in seconds with our optimized search algorithms and cached database queries.</p>
+                </div>
+
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-200 hover:shadow-xl transition-all transform hover:-translate-y-2">
+                    <div class="text-4xl text-amber-900 mb-4">
+                        <i class="fas fa-bookmark"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-amber-900 mb-3">Save & Organize</h3>
+                    <p class="text-amber-800">Bookmark papers, create collections, and organize your research with powerful tools.</p>
+                </div>
+
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-200 hover:shadow-xl transition-all transform hover:-translate-y-2">
+                    <div class="text-4xl text-amber-900 mb-4">
+                        <i class="fas fa-filter"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-amber-900 mb-3">Smart Filtering</h3>
+                    <p class="text-amber-800">Filter by date, citation count, author, journal, and more to find exactly what you need.</p>
+                </div>
+
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-200 hover:shadow-xl transition-all transform hover:-translate-y-2">
+                    <div class="text-4xl text-amber-900 mb-4">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-amber-900 mb-3">Citation Analytics</h3>
+                    <p class="text-amber-800">See citation counts, h-index metrics, and impact factors to evaluate research quality.</p>
+                </div>
+
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-200 hover:shadow-xl transition-all transform hover:-translate-y-2">
+                    <div class="text-4xl text-amber-900 mb-4">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-amber-900 mb-3">Mobile Ready</h3>
+                    <p class="text-amber-800">Access your research anywhere with our responsive design and mobile-optimized interface.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="bg-gradient-to-r from-amber-900 to-amber-800 rounded-3xl p-12 text-white">
+                <h2 class="text-4xl font-bold mb-4">Ready to Transform Your Research?</h2>
+                <p class="text-xl mb-8 text-amber-100">
+                    Join thousands of researchers who've streamlined their paper discovery process with ReFindr.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="#" class="bg-white text-amber-900 hover:bg-amber-50 px-8 py-4 rounded-2xl font-semibold text-lg transition-all transform hover:scale-105">
+                        <i class="fas fa-user-plus mr-2"></i>Create Free Account
+                    </a>
+                </div>
+                <p class="text-sm text-amber-200 mt-4">
+                    No credit card required • Free forever plan available
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-amber-900 text-white py-12">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4">
+                        <i class="fas fa-search mr-2"></i>ReFindr
+                    </h3>
+                    <p class="text-amber-200">
+                        The ultimate academic paper search engine for researchers worldwide.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-3">Features</h4>
+                    <ul class="space-y-2 text-amber-200">
+                        <li><a href="#" class="hover:text-white">Multi-source Search</a></li>
+                        <li><a href="#" class="hover:text-white">Save Papers</a></li>
+                        <li><a href="#" class="hover:text-white">Citation Tracking</a></li>
+                        <li><a href="#" class="hover:text-white">Export Tools</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-3">Resources</h4>
+                    <ul class="space-y-2 text-amber-200">
+                        <li><a href="#" class="hover:text-white">API Documentation</a></li>
+                        <li><a href="#" class="hover:text-white">Help Center</a></li>
+                        <li><a href="#" class="hover:text-white">Research Guide</a></li>
+                        <li><a href="#" class="hover:text-white">Blog</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-3">Connect</h4>
+                    <div class="flex gap-4">
+                        <a href="#" class="text-amber-200 hover:text-white text-xl">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-amber-200 hover:text-white text-xl">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                        <a href="#" class="text-amber-200 hover:text-white text-xl">
+                            <i class="fab fa-github"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-amber-800 mt-8 pt-8 text-center text-amber-200">
+                <p>&copy; 2025 ReFindr. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <style>
+        /* Custom hover effects and animations */
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Source selection interactive styling */
+        input[type="checkbox"]:checked + label {
+            background-color: #78350f !important;
+            color: white !important;
+            border-color: #78350f !important;
+        }
+    </style>
+
+    <script>
+        // Interactive source selection
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const label = this.nextElementSibling || this.parentNode;
+                if (this.checked) {
+                    label.classList.add('bg-amber-900', 'text-white', 'border-amber-900');
+                    label.classList.remove('bg-white', 'border-amber-200', 'text-amber-700');
+                } else {
+                    label.classList.remove('bg-amber-900', 'text-white', 'border-amber-900');
+                    label.classList.add('bg-white', 'border-amber-200', 'text-amber-700');
+                }
+            });
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

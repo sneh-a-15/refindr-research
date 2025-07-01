@@ -1,0 +1,203 @@
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Text&display=swap"
+      rel="stylesheet"
+    />
+    {% tailwind_css %}
+    <title>
+      {% block title %}ReFindr - Academic Paper Search{% endblock %}
+    </title>
+
+    <style>
+      /* Custom font import for DM Serif Text, applied to body via Tailwind's font-serif */
+      body {
+        font-family: "DM Serif Text", serif;
+      }
+
+      /* Header specific styles for a subtle shadow on scroll (optional JS needed) */
+      .header-shadow {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      /* Footer specific styles */
+      .footer-link-hover:hover {
+        text-decoration: underline;
+      }
+
+      /* Ensure smooth transitions on hover for nav links */
+      .nav-link-hover:hover {
+        color: #92400e; /* text-amber-800 */
+      }
+    </style>
+    <script
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+      defer
+    ></script>
+  </head>
+  <body class="bg-gray-50 font-serif min-h-screen flex flex-col">
+    <nav class="py-4 header-transition" style="background-color: #f5f1e8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center">
+          <div class="text-3xl font-bold text-amber-900 logo-text">
+            <a href="{% url 'home' %}">ReFindr</a>
+          </div>
+          <div class="flex items-center space-x-6">
+            {% if user.is_authenticated %}
+            <span class="text-amber-900 font-medium"
+              >Hello, {{ user.username }}!</span
+            >
+
+            <!-- Dropdown Profile Menu -->
+            <div class="relative" x-data="{ open: false }">
+              <button
+                @click="open = !open"
+                class="w-10 h-10 bg-amber-900 rounded-full flex items-center justify-center text-white text-lg focus:outline-none"
+              >
+                <i class="fas fa-user"></i>
+              </button>
+              <div
+                x-show="open"
+                @click.outside="open = false"
+                class="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-50"
+              >
+                <a
+                  href="{% url 'profile' %}"
+                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >Profile</a
+                >
+                <a
+                  href="{% url 'view_bookmark_lists' %}"
+                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >Bookmarks</a
+                >
+                <a
+                  href="{% url 'logout' %}"
+                  class="block px-4 py-2 text-sm text-red-600 hover:bg-red-100"
+                  >Logout</a
+                >
+              </div>
+            </div>
+            {% else %}
+            <a
+              href="{% url 'login' %}"
+              class="text-amber-900 hover:text-amber-800 font-medium transition-colors nav-link-hover"
+              >Login</a
+            >
+            <a
+              href="{% url 'signup' %}"
+              class="bg-amber-900 hover:bg-amber-800 text-white font-medium py-2 px-4 rounded-full transition-colors nav-button-hover"
+              >Sign Up</a
+            >
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="flex-grow">{% block content %} {% endblock %}</main>
+<!-- 
+    <footer class="bg-amber-800 text-white mt-auto">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div class="col-span-1 md:col-span-2">
+            <div class="flex items-center mb-4">
+              <i class="fas fa-graduation-cap text-amber-300 text-3xl mr-3"></i>
+              <span class="text-2xl font-bold">ReFindr</span>
+            </div>
+            <p class="text-gray-300 leading-relaxed">
+              Your gateway to academic research. Discover, explore, and access
+              thousands of research papers across all disciplines with ease.
+            </p>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold mb-4 text-amber-100">
+              Quick Links
+            </h3>
+            <ul class="space-y-2">
+              <li>
+                <a
+                  href="{% url 'home' %}"
+                  class="text-gray-300 hover:text-white transition-colors footer-link-hover"
+                  >Search Papers</a
+                >
+              </li>
+              <li>
+                <a
+                  href="#"
+                  class="text-gray-300 hover:text-white transition-colors footer-link-hover"
+                  >Browse by Subject</a
+                >
+              </li>
+              <li>
+                <a
+                  href="#"
+                  class="text-gray-300 hover:text-white transition-colors footer-link-hover"
+                  >Advanced Search</a
+                >
+              </li>
+              <li>
+                <a
+                  href="#"
+                  class="text-gray-300 hover:text-white transition-colors footer-link-hover"
+                  >Help & Support</a
+                >
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold mb-4 text-amber-100">Connect</h3>
+            <div class="flex space-x-4">
+              <a
+                href="#"
+                class="text-gray-300 hover:text-white transition-colors text-xl"
+              >
+                <i class="fab fa-twitter"></i>
+              </a>
+              <a
+                href="#"
+                class="text-gray-300 hover:text-white transition-colors text-xl"
+              >
+                <i class="fab fa-linkedin"></i>
+              </a>
+              <a
+                href="#"
+                class="text-gray-300 hover:text-white transition-colors text-xl"
+              >
+                <i class="fab fa-github"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="border-t border-amber-700 mt-8 pt-8 text-center text-sm">
+          <p class="text-gray-300">
+            &copy; 2025 ReFindr. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </footer>-->
+
+     <script>
+      // Optional: Add a subtle shadow to the header on scroll
+      const nav = document.querySelector("nav");
+      window.addEventListener("scroll", () => {
+        if (window.scrollY > 50) {
+          nav.classList.add("header-shadow");
+        } else {
+          nav.classList.remove("header-shadow");
+        }
+      });
+    </script>
+  </body> 
+</html> 

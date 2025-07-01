@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+
+{% block title %}ReFindr - Find Academic Papers{% endblock %}
+
+{% block content %}
+<div class="min-h-screen" style="background-color: #f5f1e8;">
+    <section class="pt-16 pb-8">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            {% if user.is_authenticated %}
+                <h1 class="text-4xl md:text-5xl font-bold text-amber-900 mb-4">
+                    Welcome back, {{ user.username }}!
+                </h1>
+                <p class="text-lg text-amber-800 mb-12 max-w-2xl mx-auto">
+                    Continue your research journey and explore new papers.
+                </p>
+            {% else %}
+                <h1 class="text-4xl md:text-5xl font-bold text-amber-900 mb-4">
+                    Search Academic Papers Across Multiple Databases
+                </h1>
+                <p class="text-lg text-amber-800 mb-12 max-w-2xl mx-auto">
+                    Find research papers from your favorite academic sources all in one place
+                </p>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="pb-12">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <form method="GET" action="{% url 'home' %}" id="searchForm" class="mb-8">
+                <div class="relative mb-6">
+                    <input
+                        type="text"
+                        name="query"
+                        placeholder="Search for research papers..."
+                        class="w-full px-6 py-4 text-lg text-gray-900 rounded-2xl border-2 border-amber-200 focus:border-amber-900 focus:ring-0 shadow-sm bg-white search-input"
+                        value="{{ query|default:'' }}"
+                    >
+                    <button
+                        type="submit"
+                        class="absolute right-2 top-3 bg-amber-900 hover:bg-amber-800 text-white px-6 py-2 rounded-xl transition-colors"
+                    >
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-amber-900 mb-4">Select Sources to Search:</h3>
+                    <div class="flex flex-wrap gap-3">
+                        {% for source in available_sources %}
+                        {% comment %} Generate a unique id for each checkbox {% endcomment %}
+                        {% with "source-"|add:source.id as checkbox_id %}
+                        <input
+                            type="checkbox"
+                            name="sources"
+                            value="{{ source.id }}"
+                            id="{{ checkbox_id }}"
+                            class="peer hidden"
+                            {% if source.id in selected_sources %}checked{% endif %}
+                        >
+                        <label for="{{ checkbox_id }}"
+                            class="source-select bg-white border-2 border-amber-200 text-amber-700 px-6 py-3 rounded-full cursor-pointer hover:bg-amber-900 hover:text-white transition-all font-medium
+                            {% if source.id in selected_sources %}selected{% endif %} peer-checked:bg-amber-900 peer-checked:text-white peer-checked:border-amber-900 source-label-hover"
+                        >
+                            <i class="{{ source.icon }} mr-2"></i>{{ source.name }}
+                            {% if not source.free %}
+                                <i class="fas fa-crown text-yellow-500 ml-1" title="Premium API required"></i>
+                            {% endif %}
+                        </label>
+                        {% endwith %}
+                        {% empty %}
+                        <input type="checkbox" name="sources" value="arxiv" id="source-arxiv" class="peer hidden" checked>
+                        <label for="source-arxiv" class="source-select bg-white border-2 border-amber-900 text-amber-900 px-6 py-3 rounded-full cursor-pointer hover:bg-amber-900 hover:text-white transition-all font-medium selected peer-checked:bg-amber-900 peer-checked:text-white peer-checked:border-amber-900 source-label-hover">
+                            <i class="fas fa-archive mr-2"></i>arXiv
+                        </label>
+                        <input type="checkbox" name="sources" value="semantic_scholar" id="source-semantic" class="peer hidden">
+                        <label for="source-semantic" class="source-select bg-white border-2 border-amber-200 text-amber-700 px-6 py-3 rounded-full cursor-pointer hover:bg-amber-900 hover:text-white transition-all font-medium peer-checked:bg-amber-900 peer-checked:text-white peer-checked:border-amber-900 source-label-hover">
+                            <i class="fas fa-brain mr-2"></i>Semantic Scholar
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <p class="text-sm text-amber-700 mt-3 ">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Select at least one source. Free sources work without API keys.
+                    </p>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    {% if search_stats %}
+    <section class="pb-8">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white rounded-xl p-4 border border-amber-200 shadow-md">
+                <h4 class="font-semibold text-amber-900 mb-2">Search Results Summary:</h4>
+                <div class="flex flex-wrap gap-4 text-sm">
+                    {% for source, stats in search_stats.items %}
+                    <div class="flex items-center">
+                        <span class="font-medium">{{ source|title }}:</span>
+                        {% if stats.error %}
+                            <span class="text-red-600 ml-1">{{ stats.error }}</span>
+                        {% else %}
+                            <span class="text-green-600 ml-1">{{ stats.count }} papers</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    {% if papers %}
+    <section class="pb-16">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-2xl font-bold text-amber-900 mb-8">
+                Search Results for "{{ query }}" ({{ papers|length }} papers found)
+            </h2>
+
+            <div class="grid gap-6">
+                {% for paper in papers %}
+                <div class="bg-white border border-amber-200 rounded-xl p-6 transition-all paper-card-hover">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2 sm:mb-0 flex-1 pr-4">
+                            <a href="{{ paper.link }}" target="_blank" rel="noopener noreferrer" class="hover:text-amber-900 transition-colors">
+                                {{ paper.title }}
+                            </a>
+                        </h3>
+                        <div class="flex flex-row sm:flex-col items-center sm:items-end gap-2">
+                            <span class="bg-amber-100 text-amber-900 text-xs px-3 py-1 rounded-full whitespace-nowrap font-semibold">
+                                {{ paper.category }}
+                            </span>
+                            <span class="text-xs text-gray-600 flex items-center">
+                                <i class="{{ paper.source_icon }} mr-1 text-amber-700"></i>
+                                {{ paper.source }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="text-gray-600 mb-3 text-sm">
+                        <i class="fas fa-user mr-2 text-amber-700"></i>
+                        <strong class="text-amber-900">Authors:</strong>
+                        {% if paper.authors %}
+                            {{ paper.authors|join:", " }}
+                        {% else %}
+                            Unknown
+                        {% endif %}
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-gray-600 mb-3 text-sm">
+                        <div>
+                            <i class="fas fa-calendar mr-2 text-amber-700"></i>
+                            <strong class="text-amber-900">Published:</strong> {{ paper.published }}
+                        </div>
+                        {% if paper.citation_count %}
+                        <div>
+                            <i class="fas fa-quote-right mr-2 text-amber-700"></i>
+                            <strong class="text-amber-900">Citations:</strong> {{ paper.citation_count }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <p class="text-gray-700 mb-4 leading-relaxed text-base">
+                        {{ paper.summary|truncatewords:50 }}
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-3 mt-4">
+                        <a href="{{ paper.link }}" target="_blank" rel="noopener noreferrer" class="text-amber-900 hover:text-amber-800 font-medium flex items-center">
+                            <i class="fas fa-external-link-alt mr-1"></i>
+                            View Full Paper
+                        </a>
+                        <div class="flex gap-3">
+                            <button class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 py-2 rounded-lg transition-colors text-sm flex items-center">
+                                <i class="fas fa-bookmark mr-1"></i>
+                                Save
+                            </button>
+                            {% if paper.pdf_link %}
+                            <a href="{{ paper.pdf_link }}" target="_blank" rel="noopener noreferrer" class="bg-amber-900 hover:bg-amber-800 text-white px-4 py-2 rounded-lg transition-colors text-sm flex items-center">
+                                <i class="fas fa-file-pdf mr-1"></i>
+                                PDF
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% elif query %}
+    <section class="pb-16">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="bg-white rounded-xl p-8 border border-amber-200 shadow-md">
+                <i class="fas fa-search text-4xl text-amber-300 mb-4"></i>
+                <h3 class="text-xl font-semibold text-amber-900 mb-2">No Results Found</h3>
+                <p class="text-amber-700">
+                    Try adjusting your search terms or selecting different sources.
+                </p>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+</div>
+
+<style>
+/* Custom background color for a softer, academic feel */
+body {
+    background-color: #f5f1e8; /* Applied to body, as the div doesn't always cover full height */
+}
+
+/* Specific styling for the search input focus */
+.search-input:focus {
+    box-shadow: 0 0 0 3px rgba(120, 53, 15, 0.2); /* Amber focus ring */
+}
+
+/* Style for selected source checkboxes */
+.source-select.selected,
+input[type="checkbox"].peer:checked + .source-select {
+    background-color: #78350f !important; /* Darker amber for selected */
+    color: white !important;
+    border-color: #78350f !important;
+}
+
+/* Hover effect for source selection labels */
+.source-label-hover:hover {
+    transform: translateY(-1px); /* Slight lift */
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1); /* More pronounced shadow */
+}
+
+/* Hover effect for paper result cards */
+.paper-card-hover:hover {
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06); /* Larger shadow */
+    border-color: #fcd34d; /* Border color subtly changes to a lighter amber */
+}
+
+/* Consolidated color variables (optional, but good practice for consistency) */
+/* If you use a custom Tailwind config, you can define these there */
+.text-amber-900 { color: #78350f; }
+.text-amber-800 { color: #92400e; }
+.text-amber-700 { color: #b45309; }
+.text-amber-300 { color: #fcd34d; }
+.bg-amber-100 { background-color: #fffbeb; }
+.border-amber-200 { border-color: #fde68a; }
+.border-amber-900 { border-color: #78350f; } /* Added for fallback label */
+.hover\:bg-amber-800:hover { background-color: #92400e; }
+.hover\:bg-amber-200:hover { background-color: #fde68a; }
+.hover\:border-amber-300:hover { border-color: #fcd34d; }
+.hover\:text-amber-900:hover { color: #78350f; }
+.hover\:text-amber-800:hover { color: #92400e; }
+
+
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Ensure at least one source is selected
+    const form = document.getElementById('searchForm');
+    form.addEventListener('submit', function(e) {
+        const checkedSources = document.querySelectorAll('input[name="sources"]:checked');
+        if (checkedSources.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one source to search.');
+        }
+    });
+});
+</script>
+{% endblock %}
