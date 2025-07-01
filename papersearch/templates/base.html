@@ -8,10 +8,6 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
     />
-    <link
-      href="https://fonts.googleapis.com/css2?family=DM+Serif+Text&display=swap"
-      rel="stylesheet"
-    />
     {% tailwind_css %}
     <title>
       {% block title %}ReFindr - Academic Paper Search{% endblock %}
@@ -20,7 +16,7 @@
     <style>
       /* Custom font import for DM Serif Text, applied to body via Tailwind's font-serif */
       body {
-        font-family: "DM Serif Text", serif;
+        font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
       }
 
       /* Header specific styles for a subtle shadow on scroll (optional JS needed) */

@@ -1,266 +1,1033 @@
 {% extends 'base.html' %}
-
 {% block title %}ReFindr - Find Academic Papers{% endblock %}
-
 {% block content %}
-<div class="min-h-screen" style="background-color: #f5f1e8;">
-    <section class="pt-16 pb-8">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            {% if user.is_authenticated %}
-                <h1 class="text-4xl md:text-5xl font-bold text-amber-900 mb-4">
-                    Welcome back, {{ user.username }}!
-                </h1>
-                <p class="text-lg text-amber-800 mb-12 max-w-2xl mx-auto">
-                    Continue your research journey and explore new papers.
-                </p>
+<div class="min-h-screen" style="background-color: #f5f1e8">
+  <section class="pt-16 pb-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      {% if user.is_authenticated %}
+      <h1 class="text-4xl md:text-5xl font-bold text-amber-900 mb-4">
+        Welcome back, {{ user.username }}!
+      </h1>
+      <p class="text-lg text-amber-800 mb-12 max-w-2xl mx-auto">
+        Continue your research journey and explore new papers.
+      </p>
+      {% else %}
+      <h1 class="text-4xl md:text-5xl font-bold text-amber-900 mb-4">
+        Search Academic Papers Across Multiple Databases
+      </h1>
+      <p class="text-lg text-amber-800 mb-12 max-w-2xl mx-auto">
+        Find research papers from your favorite academic sources all in one
+        place.
+      </p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="pb-12">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <form method="GET" action="{% url 'home' %}" id="searchForm" class="mb-8">
+        <div class="relative mb-6">
+          <div class="relative search-autocomplete-container">
+            <input
+              type="text"
+              name="query"
+              id="searchInput"
+              placeholder="Search for research papers..."
+              class="w-full px-6 py-4 text-lg text-gray-900 rounded-2xl border-2 border-amber-200 focus:border-amber-900 focus:ring-0 shadow-sm bg-white search-input"
+              value="{{ query|default:'' }}"
+              autocomplete="off"
+            />
+            <button
+              type="submit"
+              class="absolute right-2 top-3 bg-amber-900 hover:bg-amber-800 text-white px-6 py-2 rounded-xl transition-colors"
+            >
+              <i class="fas fa-search"></i>
+            </button>
+            <!-- Autocomplete dropdown -->
+            <div id="autocompleteDropdown" class="absolute top-full left-0 right-0 bg-white border border-amber-200 rounded-lg shadow-lg z-10 hidden max-h-60 overflow-y-auto">
+              <!-- Suggestions will be populated here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Suggested Keywords Section -->
+        {% if suggested_keywords %}
+        <div class="mb-6">
+          <h3 class="text-sm font-medium text-amber-900 mb-3">
+            <i class="fas fa-lightbulb mr-2"></i>Suggested Keywords:
+          </h3>
+          <div class="flex flex-wrap gap-2">
+            {% for keyword in suggested_keywords|slice:":10" %}
+            <button
+              type="button"
+              class="bg-amber-50 hover:bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm border border-amber-200 transition-colors keyword-suggestion"
+              data-keyword="{{ keyword }}"
+            >
+              {{ keyword }}
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="mb-8">
+          <h3 class="text-lg font-semibold text-amber-900 mb-4">
+            Select Sources to Search:
+          </h3>
+          <div class="flex flex-wrap gap-3">
+            {% for source in available_sources %}
+              {% with "source-"|add:source.id as checkbox_id %}
+                <input
+                  type="checkbox"
+                  name="sources"
+                  value="{{ source.id }}"
+                  id="{{ checkbox_id }}"
+                  class="peer hidden"
+                  {% if source.id in selected_sources %}checked{% endif %}
+                />
+                <label
+                  for="{{ checkbox_id }}"
+                  class="bg-white border-2 border-amber-200 text-amber-700 px-6 py-3 rounded-full cursor-pointer hover:bg-amber-900 hover:text-white transition-all font-medium peer-checked:bg-amber-900 peer-checked:text-white peer-checked:border-amber-900 source-label-hover"
+                >
+                  <i class="{{ source.icon }} mr-2"></i>{{ source.name }}
+                  {% if not source.free %}
+                    <i class="fas fa-crown text-yellow-500 ml-1" title="Premium API required"></i>
+                  {% endif %}
+                </label>
+              {% endwith %}
+            {% empty %}
+              <p class="text-sm text-red-600">No sources available.</p>
+            {% endfor %}
+          </div>
+          <p class="text-sm text-amber-700 mt-3">
+            <i class="fas fa-info-circle mr-2"></i>
+            Select at least one source. Free sources work without API keys.
+          </p>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  {% if search_stats %}
+  <section class="pb-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="bg-white rounded-xl p-4 border border-amber-200 shadow-md">
+        <h4 class="font-semibold text-amber-900 mb-2">
+          Search Results Summary:
+        </h4>
+        <div class="flex flex-wrap gap-4 text-sm">
+          {% for source, stats in search_stats.items %}
+          <div class="flex items-center">
+            <span class="font-medium">{{ source|title }}:</span>
+            {% if stats.error %}
+            <span class="text-red-600 ml-1">{{ stats.error }}</span>
             {% else %}
-                <h1 class="text-4xl md:text-5xl font-bold text-amber-900 mb-4">
-                    Search Academic Papers Across Multiple Databases
-                </h1>
-                <p class="text-lg text-amber-800 mb-12 max-w-2xl mx-auto">
-                    Find research papers from your favorite academic sources all in one place
-                </p>
+            <span class="text-green-600 ml-1">{{ stats.count }} papers</span>
             {% endif %}
+          </div>
+          {% endfor %}
         </div>
-    </section>
+      </div>
+    </div>
+  </section>
+  {% endif %}
 
-    <section class="pb-12">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <form method="GET" action="{% url 'home' %}" id="searchForm" class="mb-8">
-                <div class="relative mb-6">
-                    <input
-                        type="text"
-                        name="query"
-                        placeholder="Search for research papers..."
-                        class="w-full px-6 py-4 text-lg text-gray-900 rounded-2xl border-2 border-amber-200 focus:border-amber-900 focus:ring-0 shadow-sm bg-white search-input"
-                        value="{{ query|default:'' }}"
-                    >
-                    <button
-                        type="submit"
-                        class="absolute right-2 top-3 bg-amber-900 hover:bg-amber-800 text-white px-6 py-2 rounded-xl transition-colors"
-                    >
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-
-                <div class="mb-8">
-                    <h3 class="text-lg font-semibold text-amber-900 mb-4">Select Sources to Search:</h3>
-                    <div class="flex flex-wrap gap-3">
-                        {% for source in available_sources %}
-                        {% comment %} Generate a unique id for each checkbox {% endcomment %}
-                        {% with "source-"|add:source.id as checkbox_id %}
-                        <input
-                            type="checkbox"
-                            name="sources"
-                            value="{{ source.id }}"
-                            id="{{ checkbox_id }}"
-                            class="peer hidden"
-                            {% if source.id in selected_sources %}checked{% endif %}
-                        >
-                        <label for="{{ checkbox_id }}"
-                            class="source-select bg-white border-2 border-amber-200 text-amber-700 px-6 py-3 rounded-full cursor-pointer hover:bg-amber-900 hover:text-white transition-all font-medium
-                            {% if source.id in selected_sources %}selected{% endif %} peer-checked:bg-amber-900 peer-checked:text-white peer-checked:border-amber-900 source-label-hover"
-                        >
-                            <i class="{{ source.icon }} mr-2"></i>{{ source.name }}
-                            {% if not source.free %}
-                                <i class="fas fa-crown text-yellow-500 ml-1" title="Premium API required"></i>
-                            {% endif %}
-                        </label>
-                        {% endwith %}
-                        {% empty %}
-                        <input type="checkbox" name="sources" value="arxiv" id="source-arxiv" class="peer hidden" checked>
-                        <label for="source-arxiv" class="source-select bg-white border-2 border-amber-900 text-amber-900 px-6 py-3 rounded-full cursor-pointer hover:bg-amber-900 hover:text-white transition-all font-medium selected peer-checked:bg-amber-900 peer-checked:text-white peer-checked:border-amber-900 source-label-hover">
-                            <i class="fas fa-archive mr-2"></i>arXiv
-                        </label>
-                        <input type="checkbox" name="sources" value="semantic_scholar" id="source-semantic" class="peer hidden">
-                        <label for="source-semantic" class="source-select bg-white border-2 border-amber-200 text-amber-700 px-6 py-3 rounded-full cursor-pointer hover:bg-amber-900 hover:text-white transition-all font-medium peer-checked:bg-amber-900 peer-checked:text-white peer-checked:border-amber-900 source-label-hover">
-                            <i class="fas fa-brain mr-2"></i>Semantic Scholar
-                        </label>
-                        {% endfor %}
-                    </div>
-                    <p class="text-sm text-amber-700 mt-3 ">
-                        <i class="fas fa-info-circle mr-2"></i>
-                        Select at least one source. Free sources work without API keys.
-                    </p>
-                </div>
-            </form>
-        </div>
-    </section>
-
-    {% if search_stats %}
-    <section class="pb-8">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="bg-white rounded-xl p-4 border border-amber-200 shadow-md">
-                <h4 class="font-semibold text-amber-900 mb-2">Search Results Summary:</h4>
-                <div class="flex flex-wrap gap-4 text-sm">
-                    {% for source, stats in search_stats.items %}
-                    <div class="flex items-center">
-                        <span class="font-medium">{{ source|title }}:</span>
-                        {% if stats.error %}
-                            <span class="text-red-600 ml-1">{{ stats.error }}</span>
-                        {% else %}
-                            <span class="text-green-600 ml-1">{{ stats.count }} papers</span>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                </div>
+  {% if papers %}
+  <section class="pb-16">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-2xl font-bold text-amber-900 mb-8">
+        Search Results for "{{ query }}" ({{ papers|length }} papers found)
+      </h2>
+      <div class="grid gap-6">
+        {% for paper in papers %}
+        <div class="bg-white border border-amber-200 rounded-xl p-6 transition-all paper-card-hover">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+            <h3 class="text-xl font-semibold text-gray-900 mb-2 sm:mb-0 flex-1 pr-4">
+              <a
+                href="{{ paper.link }}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="hover:text-amber-900 transition-colors"
+              >
+                {{ paper.title }}
+              </a>
+            </h3>
+            <div class="flex flex-row sm:flex-col items-center sm:items-end gap-2">
+              <span class="bg-amber-100 text-amber-900 text-xs px-3 py-1 rounded-full whitespace-nowrap font-semibold">
+                {{ paper.category }}
+              </span>
+              <span class="text-xs text-gray-600 flex items-center">
+                <i class="{{ paper.source_icon }} mr-1 text-amber-700"></i>
+                {{ paper.source }}
+              </span>
             </div>
-        </div>
-    </section>
-    {% endif %}
-
-    {% if papers %}
-    <section class="pb-16">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-2xl font-bold text-amber-900 mb-8">
-                Search Results for "{{ query }}" ({{ papers|length }} papers found)
-            </h2>
-
-            <div class="grid gap-6">
-                {% for paper in papers %}
-                <div class="bg-white border border-amber-200 rounded-xl p-6 transition-all paper-card-hover">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-                        <h3 class="text-xl font-semibold text-gray-900 mb-2 sm:mb-0 flex-1 pr-4">
-                            <a href="{{ paper.link }}" target="_blank" rel="noopener noreferrer" class="hover:text-amber-900 transition-colors">
-                                {{ paper.title }}
-                            </a>
-                        </h3>
-                        <div class="flex flex-row sm:flex-col items-center sm:items-end gap-2">
-                            <span class="bg-amber-100 text-amber-900 text-xs px-3 py-1 rounded-full whitespace-nowrap font-semibold">
-                                {{ paper.category }}
-                            </span>
-                            <span class="text-xs text-gray-600 flex items-center">
-                                <i class="{{ paper.source_icon }} mr-1 text-amber-700"></i>
-                                {{ paper.source }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="text-gray-600 mb-3 text-sm">
-                        <i class="fas fa-user mr-2 text-amber-700"></i>
-                        <strong class="text-amber-900">Authors:</strong>
-                        {% if paper.authors %}
-                            {{ paper.authors|join:", " }}
-                        {% else %}
-                            Unknown
-                        {% endif %}
-                    </div>
-
-                    <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-gray-600 mb-3 text-sm">
-                        <div>
-                            <i class="fas fa-calendar mr-2 text-amber-700"></i>
-                            <strong class="text-amber-900">Published:</strong> {{ paper.published }}
-                        </div>
-                        {% if paper.citation_count %}
-                        <div>
-                            <i class="fas fa-quote-right mr-2 text-amber-700"></i>
-                            <strong class="text-amber-900">Citations:</strong> {{ paper.citation_count }}
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <p class="text-gray-700 mb-4 leading-relaxed text-base">
-                        {{ paper.summary|truncatewords:50 }}
-                    </p>
-
-                    <div class="flex flex-col sm:flex-row justify-between items-center gap-3 mt-4">
-                        <a href="{{ paper.link }}" target="_blank" rel="noopener noreferrer" class="text-amber-900 hover:text-amber-800 font-medium flex items-center">
-                            <i class="fas fa-external-link-alt mr-1"></i>
-                            View Full Paper
-                        </a>
-                        <div class="flex gap-3">
-                            <button class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 py-2 rounded-lg transition-colors text-sm flex items-center">
-                                <i class="fas fa-bookmark mr-1"></i>
-                                Save
-                            </button>
-                            {% if paper.pdf_link %}
-                            <a href="{{ paper.pdf_link }}" target="_blank" rel="noopener noreferrer" class="bg-amber-900 hover:bg-amber-800 text-white px-4 py-2 rounded-lg transition-colors text-sm flex items-center">
-                                <i class="fas fa-file-pdf mr-1"></i>
-                                PDF
-                            </a>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
+          </div>
+          <div class="text-gray-600 mb-3 text-sm">
+            <i class="fas fa-user mr-2 text-amber-700"></i>
+            <strong class="text-amber-900">Authors:</strong>
+            {% if paper.authors %}
+              {{ paper.authors|join:", " }}
+            {% else %}
+              Unknown
+            {% endif %}
+          </div>
+          <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-gray-600 mb-3 text-sm">
+            <div>
+              <i class="fas fa-calendar mr-2 text-amber-700"></i>
+              <strong class="text-amber-900">Published:</strong> {{ paper.published }}
             </div>
-        </div>
-    </section>
-    {% elif query %}
-    <section class="pb-16">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <div class="bg-white rounded-xl p-8 border border-amber-200 shadow-md">
-                <i class="fas fa-search text-4xl text-amber-300 mb-4"></i>
-                <h3 class="text-xl font-semibold text-amber-900 mb-2">No Results Found</h3>
-                <p class="text-amber-700">
-                    Try adjusting your search terms or selecting different sources.
-                </p>
+            {% if paper.citation_count %}
+            <div>
+              <i class="fas fa-quote-right mr-2 text-amber-700"></i>
+              <strong class="text-amber-900">Citations:</strong> {{ paper.citation_count }}
             </div>
+            {% endif %}
+          </div>
+          <p class="text-gray-700 mb-4 leading-relaxed text-base">
+            {{ paper.summary|truncatewords:50 }}
+          </p>
+          <div class="flex flex-col sm:flex-row justify-between items-center gap-3 mt-4">
+            <a
+              href="{{ paper.link }}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-amber-900 hover:text-amber-800 font-medium flex items-center"
+            >
+              <i class="fas fa-external-link-alt mr-1"></i>
+              View Full Paper
+            </a>
+            <div class="flex gap-3">
+              {% if user.is_authenticated %}
+              <button
+                type="button"
+                class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 py-2 rounded-lg transition-colors text-sm flex items-center open-bookmark-modal"
+                data-title="{{ paper.title }}"
+                data-author="{{ paper.authors|join:', ' }}"
+                data-link="{{ paper.link }}"
+                data-published="{{ paper.published }}"
+                data-category="{{ paper.category }}"
+                data-citation="{{ paper.citation_count|default:0 }}"
+              >
+                <i class="fas fa-bookmark mr-1"></i>
+                Save
+              </button>
+              {% else %}
+              <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}%26modal=true%26title={{ paper.title|urlencode }}%26link={{ paper.link|urlencode }}%26author={{ paper.authors|join:', '|urlencode }}%26published={{ paper.published|urlencode }}%26category={{ paper.category|urlencode }}%26citation={{ paper.citation_count|default:0 }}"
+                 class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 py-2 rounded-lg transition-colors text-sm flex items-center"
+                 onclick="sessionStorage.setItem('scrollPos', window.scrollY)"
+              >
+                <i class="fas fa-bookmark mr-1"></i>
+                Save
+              </a>
+              {% endif %}
+              {% if paper.pdf_link %}
+              <a
+                href="{{ paper.pdf_link }}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="bg-amber-900 hover:bg-amber-800 text-white px-4 py-2 rounded-lg transition-colors text-sm flex items-center"
+              >
+                <i class="fas fa-file-pdf mr-1"></i>
+                PDF
+              </a>
+              {% endif %}
+            </div>
+          </div>
         </div>
-    </section>
-    {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% elif query %}
+  <section class="pb-16">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="bg-white rounded-xl p-8 border border-amber-200 shadow-md">
+        <i class="fas fa-search text-4xl text-amber-300 mb-4"></i>
+        <h3 class="text-xl font-semibold text-amber-900 mb-2">
+          No Results Found
+        </h3>
+        <p class="text-amber-700">
+          Try adjusting your search terms or selecting different sources.
+        </p>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+</div>
+
+<!-- Bookmark Modal -->
+<div id="bookmarkModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
+    <h3 class="text-lg font-semibold text-amber-900 mb-4">
+      Save to Bookmark List
+    </h3>
+    <form method="POST" action="{% url 'add_bookmark' list_id=0 %}" id="bookmarkForm">
+      {% csrf_token %}
+      <input type="hidden" name="title" id="modal-title" />
+      <input type="hidden" name="author" id="modal-author" />
+      <input type="hidden" name="link" id="modal-link" />
+      <input type="hidden" name="published" id="modal-published" />
+      <input type="hidden" name="category" id="modal-category" />
+      <input type="hidden" name="citation_count" id="modal-citation" />
+
+      <label class="block text-sm font-medium text-gray-700 mb-2">Select a List</label>
+      <select
+        name="list_id"
+        id="modal-list-id"
+        required
+        class="w-full border border-gray-300 rounded-lg mb-3 px-4 py-2"
+      >
+        {% for blist in bookmark_lists %}
+        <option value="{{ blist.id }}">{{ blist.name }}</option>
+        {% empty %}
+        <option disabled>No bookmark lists available</option>
+        {% endfor %}
+      </select>
+
+      <div class="flex items-center gap-2 mb-4">
+        <input
+          type="text"
+          id="new-list-name"
+          class="flex-grow border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          placeholder="New list name (optional)"
+        />
+        <button
+          type="button"
+          id="createListBtn"
+          class="bg-amber-800 text-white px-4 py-2 rounded-lg text-sm"
+        >
+          Create
+        </button>
+      </div>
+
+      <div class="flex justify-end gap-3">
+        <button
+          type="button"
+          id="cancelBookmark"
+          class="text-gray-500 hover:text-gray-800"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="bg-amber-900 hover:bg-amber-800 text-white px-4 py-2 rounded-lg text-sm"
+        >
+          Save
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <style>
-/* Custom background color for a softer, academic feel */
-body {
-    background-color: #f5f1e8; /* Applied to body, as the div doesn't always cover full height */
-}
-
-/* Specific styling for the search input focus */
-.search-input:focus {
-    box-shadow: 0 0 0 3px rgba(120, 53, 15, 0.2); /* Amber focus ring */
-}
-
-/* Style for selected source checkboxes */
-.source-select.selected,
-input[type="checkbox"].peer:checked + .source-select {
-    background-color: #78350f !important; /* Darker amber for selected */
+  body {
+    background-color: #f5f1e8;
+  }
+  .search-input:focus {
+    box-shadow: 0 0 0 3px rgba(120, 53, 15, 0.2);
+  }
+  .source-label-hover:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1);
+  }
+  .paper-card-hover:hover {
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1),
+      0 2px 4px -2px rgba(0, 0, 0, 0.06);
+    border-color: #fcd34d;
+  }
+  input[type="checkbox"].peer:checked + label {
+    background-color: #78350f !important;
     color: white !important;
     border-color: #78350f !important;
-}
-
-/* Hover effect for source selection labels */
-.source-label-hover:hover {
-    transform: translateY(-1px); /* Slight lift */
-    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1); /* More pronounced shadow */
-}
-
-/* Hover effect for paper result cards */
-.paper-card-hover:hover {
-    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06); /* Larger shadow */
-    border-color: #fcd34d; /* Border color subtly changes to a lighter amber */
-}
-
-/* Consolidated color variables (optional, but good practice for consistency) */
-/* If you use a custom Tailwind config, you can define these there */
-.text-amber-900 { color: #78350f; }
-.text-amber-800 { color: #92400e; }
-.text-amber-700 { color: #b45309; }
-.text-amber-300 { color: #fcd34d; }
-.bg-amber-100 { background-color: #fffbeb; }
-.border-amber-200 { border-color: #fde68a; }
-.border-amber-900 { border-color: #78350f; } /* Added for fallback label */
-.hover\:bg-amber-800:hover { background-color: #92400e; }
-.hover\:bg-amber-200:hover { background-color: #fde68a; }
-.hover\:border-amber-300:hover { border-color: #fcd34d; }
-.hover\:text-amber-900:hover { color: #78350f; }
-.hover\:text-amber-800:hover { color: #92400e; }
-
-
+  }
+  
+  /* Autocomplete styles */
+  .search-autocomplete-container {
+    position: relative;
+  }
+  
+  #autocompleteDropdown {
+    border-top: none;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    margin-top: -1px;
+  }
+  
+  .autocomplete-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background-color 0.2s;
+  }
+  
+  .autocomplete-item:hover,
+  .autocomplete-item.highlighted {
+    background-color: #fef3c7;
+    color: #78350f;
+  }
+  
+  .autocomplete-item:last-child {
+    border-bottom: none;
+  }
+  
+  .autocomplete-item .suggestion-type {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-left: 8px;
+  }
+  
+  .keyword-suggestion:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.1);
+  }
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Ensure at least one source is selected
-    const form = document.getElementById('searchForm');
-    form.addEventListener('submit', function(e) {
-        const checkedSources = document.querySelectorAll('input[name="sources"]:checked');
-        if (checkedSources.length === 0) {
-            e.preventDefault();
-            alert('Please select at least one source to search.');
-        }
+document.addEventListener("DOMContentLoaded", function () {
+  // Autocomplete functionality
+  const searchInput = document.getElementById('searchInput');
+  const autocompleteDropdown = document.getElementById('autocompleteDropdown');
+  let currentSuggestions = [];
+  let highlightedIndex = -1;
+  let autocompleteTimeout;
+
+  // Function to fetch autocomplete suggestions
+  async function fetchSuggestions(term) {
+    if (term.length < 2) {
+      hideAutocomplete();
+      return;
+    }
+
+    try {
+      const response = await fetch(`/autocomplete-suggestions/?term=${encodeURIComponent(term)}`);
+      const data = await response.json();
+      currentSuggestions = data.suggestions || [];
+      showAutocomplete(currentSuggestions);
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+      hideAutocomplete();
+    }
+  }
+
+  // Function to show autocomplete dropdown
+  function showAutocomplete(suggestions) {
+    if (suggestions.length === 0) {
+      hideAutocomplete();
+      return;
+    }
+
+    autocompleteDropdown.innerHTML = '';
+    
+    suggestions.forEach((suggestion, index) => {
+      const item = document.createElement('div');
+      item.className = 'autocomplete-item';
+      item.innerHTML = `
+        <span>${suggestion}</span>
+        <span class="suggestion-type">${suggestion.includes(' ') ? 'keyword' : 'query'}</span>
+      `;
+      
+      item.addEventListener('click', () => {
+        selectSuggestion(suggestion);
+      });
+      
+      autocompleteDropdown.appendChild(item);
     });
+
+    autocompleteDropdown.classList.remove('hidden');
+    highlightedIndex = -1;
+  }
+
+  // Function to hide autocomplete dropdown
+  function hideAutocomplete() {
+    autocompleteDropdown.classList.add('hidden');
+    highlightedIndex = -1;
+  }
+
+  // Function to select a suggestion
+  function selectSuggestion(suggestion) {
+    searchInput.value = suggestion;
+    hideAutocomplete();
+    searchInput.focus();
+  }
+
+  // Function to highlight suggestion with keyboard
+  function highlightSuggestion(index) {
+    const items = autocompleteDropdown.querySelectorAll('.autocomplete-item');
+    
+    // Remove previous highlight
+    items.forEach(item => item.classList.remove('highlighted'));
+    
+    // Add highlight to current item
+    if (index >= 0 && index < items.length) {
+      items[index].classList.add('highlighted');
+      highlightedIndex = index;
+    }
+  }
+
+  // Search input event listeners
+  searchInput.addEventListener('input', function() {
+    const term = this.value.trim();
+    
+    // Clear previous timeout
+    if (autocompleteTimeout) {
+      clearTimeout(autocompleteTimeout);
+    }
+    
+    // Debounce the search
+    autocompleteTimeout = setTimeout(() => {
+      fetchSuggestions(term);
+    }, 300);
+  });
+
+  // Keyboard navigation for autocomplete
+  searchInput.addEventListener('keydown', function(e) {
+    const items = autocompleteDropdown.querySelectorAll('.autocomplete-item');
+    
+    switch(e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        if (items.length > 0) {
+          highlightedIndex = Math.min(highlightedIndex + 1, items.length - 1);
+          highlightSuggestion(highlightedIndex);
+        }
+        break;
+        
+      case 'ArrowUp':
+        e.preventDefault();
+        if (items.length > 0) {
+          highlightedIndex = Math.max(highlightedIndex - 1, -1);
+          if (highlightedIndex >= 0) {
+            highlightSuggestion(highlightedIndex);
+          } else {
+            items.forEach(item => item.classList.remove('highlighted'));
+          }
+        }
+        break;
+        
+      case 'Enter':
+        if (highlightedIndex >= 0 && items.length > 0) {
+          e.preventDefault();
+          const selectedText = items[highlightedIndex].querySelector('span').textContent;
+          selectSuggestion(selectedText);
+        }
+        break;
+        
+      case 'Escape':
+        hideAutocomplete();
+        break;
+    }
+  });
+
+  // Hide autocomplete when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!searchInput.contains(e.target) && !autocompleteDropdown.contains(e.target)) {
+      hideAutocomplete();
+    }
+  });
+
+  // Keyword suggestion buttons
+  document.querySelectorAll('.keyword-suggestion').forEach(button => {
+    button.addEventListener('click', function() {
+      const keyword = this.dataset.keyword;
+      const currentValue = searchInput.value.trim();
+      
+      // Add keyword to search if not already present
+      if (!currentValue.toLowerCase().includes(keyword.toLowerCase())) {
+        const newValue = currentValue ? `${currentValue} ${keyword}` : keyword;
+        searchInput.value = newValue;
+        searchInput.focus();
+      }
+    });
+  });
+
+  // Form validation
+  const form = document.getElementById("searchForm");
+  form.addEventListener("submit", function (e) {
+    const checkedSources = document.querySelectorAll(
+      'input[name="sources"]:checked'
+    );
+    if (checkedSources.length === 0) {
+      e.preventDefault();
+      alert("Please select at least one source to search.");
+    }
+  });
+
+  // Function to safely encode URL parameters
+  function safeEncodeURIComponent(str) {
+    if (!str) return '';
+    return encodeURIComponent(str.toString());
+  }
+
+  // Update bookmark form action
+  function updateBookmarkFormAction(listId) {
+    const form = document.getElementById("bookmarkForm");
+    const baseUrl = "{% url 'add_bookmark' list_id=0 %}";
+    form.action = baseUrl.replace("0", listId);
+  }
+
+  // Success toast notification function
+  function showToast(message, type = "success") {
+    // Remove any existing toasts first
+    const existingToasts = document.querySelectorAll('.toast-notification');
+    existingToasts.forEach(toast => toast.remove());
+
+    const toast = document.createElement("div");
+    const bgColor = type === "success" ? "bg-green-500" : "bg-red-500";
+    toast.className = `toast-notification fixed top-4 right-4 ${bgColor} text-white px-6 py-4 rounded-lg shadow-xl z-50 transform translate-x-full transition-all duration-300 ease-in-out max-w-sm`;
+
+    toast.innerHTML = `
+        <div class="flex items-center gap-3">
+            <div class="flex-shrink-0">
+                ${
+                  type === "success"
+                    ? '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>'
+                    : '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>'
+                }
+            </div>
+            <div class="flex-1">
+                <p class="font-medium">${message}</p>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" class="flex-shrink-0 text-white hover:text-gray-200">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(toast);
+
+    // Slide in animation
+    setTimeout(() => {
+      toast.classList.remove("translate-x-full");
+    }, 100);
+
+    // Auto remove after 4 seconds
+    setTimeout(() => {
+      toast.classList.add("translate-x-full");
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
+  }
+
+  // Make showToast available globally
+  window.showToast = showToast;
+
+  // Restore scroll position from sessionStorage
+  const scrollPos = sessionStorage.getItem("scrollPos");
+  if (scrollPos) {
+    window.scrollTo(0, parseInt(scrollPos));
+    sessionStorage.removeItem("scrollPos");
+  }
+
+  // Check if we need to reopen modal after login
+  const params = new URLSearchParams(window.location.search);
+  let shouldOpenModal = false;
+  let modalData = {};
+
+  if (params.get("modal") === "true") {
+    shouldOpenModal = true;
+    modalData = {
+      title: params.get("title") || '',
+      author: params.get("author") || '',
+      link: params.get("link") || '',
+      published: params.get("published") || '',
+      category: params.get("category") || '',
+      citation: params.get("citation") || '0'
+    };
+
+    // Clean up URL by removing modal parameters
+    const cleanUrl = new URL(window.location);
+    cleanUrl.searchParams.delete("modal");
+    cleanUrl.searchParams.delete("title");
+    cleanUrl.searchParams.delete("author");
+    cleanUrl.searchParams.delete("link");
+    cleanUrl.searchParams.delete("published");
+    cleanUrl.searchParams.delete("category");
+    cleanUrl.searchParams.delete("citation");
+    
+    // Update URL without refreshing page
+    history.replaceState({}, document.title, cleanUrl.toString());
+  }
+
+  // Function to open bookmark modal
+  function openBookmarkModal(data) {
+    // Populate modal fields
+    document.getElementById("modal-title").value = data.title || '';
+    document.getElementById("modal-author").value = data.author || '';
+    document.getElementById("modal-link").value = data.link || '';
+    document.getElementById("modal-published").value = data.published || '';
+    document.getElementById("modal-category").value = data.category || '';
+    document.getElementById("modal-citation").value = data.citation || '0';
+
+    // Update form action if a list is selected
+    const listSelect = document.getElementById("modal-list-id");
+    if (listSelect && listSelect.value) {
+      updateBookmarkFormAction(listSelect.value);
+    }
+
+    // Show modal
+    const modal = document.getElementById("bookmarkModal");
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+
+  // Open modal if needed (after login redirect)
+  if (shouldOpenModal) {
+    // Small delay to ensure DOM is fully loaded
+    setTimeout(() => {
+      openBookmarkModal(modalData);
+    }, 100);
+  }
+
+  // Bookmark modal event listeners for authenticated users
+  document.querySelectorAll(".open-bookmark-modal").forEach((button) => {
+    button.addEventListener("click", () => {
+      const data = {
+        title: button.dataset.title || '',
+        author: button.dataset.author || '',
+        link: button.dataset.link || '',
+        published: button.dataset.published || '',
+        category: button.dataset.category || '',
+        citation: button.dataset.citation || '0'
+      };
+      openBookmarkModal(data);
+    });
+  });
+
+  // List selection change handler
+  const listSelect = document.getElementById("modal-list-id");
+  if (listSelect) {
+    listSelect.addEventListener("change", function () {
+      if (this.value) {
+        updateBookmarkFormAction(this.value);
+      }
+    });
+  }
+
+  // Cancel bookmark modal
+  const cancelBtn = document.getElementById("cancelBookmark");
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", () => {
+      const modal = document.getElementById("bookmarkModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    });
+  }
+
+  // Close modal when clicking outside
+  const modal = document.getElementById("bookmarkModal");
+  if (modal) {
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      }
+    });
+  }
+
+ // Handle bookmark form submission
+  const bookmarkForm = document.getElementById("bookmarkForm");
+  if (bookmarkForm) {
+    bookmarkForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(bookmarkForm);
+      const submitButton = bookmarkForm.querySelector('button[type="submit"]');
+      const originalText = submitButton.textContent;
+      
+      // Show loading state
+      submitButton.disabled = true;
+      submitButton.textContent = "Saving...";
+      
+      try {
+        const response = await fetch(bookmarkForm.action, {
+          method: "POST",
+          body: formData,
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+          },
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Close modal
+          const modal = document.getElementById("bookmarkModal");
+          modal.classList.add("hidden");
+          modal.classList.remove("flex");
+          
+          // Show success message
+          showToast("Paper saved to bookmarks successfully!", "success");
+          
+          // Reset form
+          bookmarkForm.reset();
+        } else {
+          showToast(data.error || "Failed to save bookmark", "error");
+        }
+      } catch (error) {
+        console.error("Error saving bookmark:", error);
+        showToast("Network error. Please try again.", "error");
+      } finally {
+        // Reset button state
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+      }
+    });
+  }
+
+  // Create new list functionality
+  const createListBtn = document.getElementById("createListBtn");
+  const newListNameInput = document.getElementById("new-list-name");
+  const bookmarkListSelect = document.getElementById("modal-list-id");
+  
+  if (createListBtn && newListNameInput && bookmarkListSelect) {
+    createListBtn.addEventListener("click", async () => {
+      const listName = newListNameInput.value.trim();
+      
+      if (!listName) {
+        showToast("Please enter a list name", "error");
+        return;
+      }
+      
+      const originalText = createListBtn.textContent;
+      createListBtn.disabled = true;
+      createListBtn.textContent = "Creating...";
+      
+      try {
+        const formData = new FormData();
+        formData.append("name", listName);
+        formData.append("csrfmiddlewaretoken", document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        const response = await fetch("{% url 'create_bookmark_list' %}", {
+          method: "POST",
+          body: formData,
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+          },
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Add new option to select
+          const newOption = document.createElement("option");
+          newOption.value = data.list_id;
+          newOption.textContent = listName;
+          newOption.selected = true;
+          
+          // Remove "No lists available" option if it exists
+          const noListsOption = bookmarkListSelect.querySelector('option[disabled]');
+          if (noListsOption) {
+            noListsOption.remove();
+          }
+          
+          bookmarkListSelect.appendChild(newOption);
+          
+          // Update form action with new list ID
+          updateBookmarkFormAction(data.list_id);
+          
+          // Clear input
+          newListNameInput.value = "";
+          
+          showToast("New list created successfully!", "success");
+        } else {
+          showToast(data.error || "Failed to create list", "error");
+        }
+      } catch (error) {
+        console.error("Error creating list:", error);
+        showToast("Network error. Please try again.", "error");
+      } finally {
+        createListBtn.disabled = false;
+        createListBtn.textContent = originalText;
+      }
+    });
+    
+    // Allow creating list with Enter key
+    newListNameInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        createListBtn.click();
+      }
+    });
+  }
+
+  // Handle search form submission with loading state
+  const searchForm = document.getElementById("searchForm");
+  if (searchForm) {
+    searchForm.addEventListener("submit", (e) => {
+      const submitButton = searchForm.querySelector('button[type="submit"]');
+      const searchInput = document.getElementById("searchInput");
+      
+      // Check if query is provided
+      if (!searchInput.value.trim()) {
+        e.preventDefault();
+        showToast("Please enter a search query", "error");
+        return;
+      }
+      
+      // Check if at least one source is selected
+      const checkedSources = document.querySelectorAll('input[name="sources"]:checked');
+      if (checkedSources.length === 0) {
+        e.preventDefault();
+        showToast("Please select at least one source to search", "error");
+        return;
+      }
+      
+      // Show loading state
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Searching...';
+        
+        // Store original content to restore if needed
+        submitButton.dataset.originalContent = '<i class="fas fa-search"></i>';
+      }
+    });
+  }
+
+  // Smooth scrolling for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    });
+  });
+
+  // Add loading animation to external links
+  document.querySelectorAll('a[target="_blank"]').forEach(link => {
+    link.addEventListener('click', function() {
+      const icon = this.querySelector('i');
+      if (icon && icon.classList.contains('fa-external-link-alt')) {
+        icon.classList.add('fa-spin');
+        setTimeout(() => {
+          icon.classList.remove('fa-spin');
+        }, 1000);
+      }
+    });
+  });
+
+  // Enhanced keyboard navigation for search form
+  document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + K to focus search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      const searchInputElement = document.getElementById('searchInput');
+      if (searchInputElement) {
+        searchInputElement.focus();
+        searchInputElement.select();
+      }
+    }
+    
+    // Escape key to close modal
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('bookmarkModal');
+      if (modal && !modal.classList.contains('hidden')) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+  });
+
+  // Show keyboard shortcut hint
+  const mainSearchInput = document.getElementById('searchInput');
+  if (mainSearchInput) {
+    // Add placeholder enhancement
+    const originalPlaceholder = mainSearchInput.placeholder;
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const shortcut = isMac ? '⌘K' : 'Ctrl+K';
+    
+    mainSearchInput.addEventListener('blur', () => {
+      if (!mainSearchInput.value) {
+        mainSearchInput.placeholder = `${originalPlaceholder} (${shortcut})`;
+      }
+    });
+    
+    mainSearchInput.addEventListener('focus', () => {
+      mainSearchInput.placeholder = originalPlaceholder;
+    });
+  }
+
+  // Add paper card animations on scroll
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, observerOptions);
+
+  // Observe paper cards for animation
+  document.querySelectorAll('.paper-card-hover').forEach(card => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(20px)';
+    card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+    observer.observe(card);
+  });
+
+  // Add copy to clipboard functionality for paper titles
+  document.querySelectorAll('.paper-card-hover').forEach(card => {
+    const title = card.querySelector('h3 a');
+    if (title) {
+      // Add copy button
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'ml-2 text-gray-400 hover:text-amber-700 transition-colors opacity-0 group-hover:opacity-100';
+      copyBtn.innerHTML = '<i class="fas fa-copy text-xs"></i>';
+      copyBtn.title = 'Copy title';
+      
+      copyBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        try {
+          await navigator.clipboard.writeText(title.textContent.trim());
+          copyBtn.innerHTML = '<i class="fas fa-check text-xs text-green-600"></i>';
+          setTimeout(() => {
+            copyBtn.innerHTML = '<i class="fas fa-copy text-xs"></i>';
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to copy text:', err);
+          showToast('Failed to copy to clipboard', 'error');
+        }
+      });
+      
+      title.parentElement.classList.add('group');
+      title.parentElement.appendChild(copyBtn);
+    }
+  });
+
+  // Debounced search input validation
+  let validationTimeout;
+  if (mainSearchInput) {
+    mainSearchInput.addEventListener('input', function() {
+      clearTimeout(validationTimeout);
+      
+      validationTimeout = setTimeout(() => {
+        const value = this.value.trim();
+        const submitButton = searchForm.querySelector('button[type="submit"]');
+        
+        if (value.length > 0) {
+          submitButton.disabled = false;
+          submitButton.classList.remove('opacity-50');
+        } else {
+          submitButton.disabled = true;
+          submitButton.classList.add('opacity-50');
+        }
+      }, 300);
+    });
+  }
+
+  console.log('ReFindr search page initialized successfully');
 });
 </script>
 {% endblock %}

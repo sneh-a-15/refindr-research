@@ -6,6 +6,9 @@ urlpatterns = [
 
     path('',views.land, name='land'),
     path('home/', views.home, name='home'),
+    path('autocomplete-suggestions/', views.autocomplete_suggestions, name='autocomplete_suggestions'),
+    path('smart-autocomplete/', views.smart_autocomplete, name='smart_autocomplete'),
+    path('user-search-history/', views.user_search_history, name='user_search_history'),
     path('search/', views.home, name='search'), 
     path('browse/', views.home, name='browse'),
     path('about/', views.home, name='about'),

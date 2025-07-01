@@ -160,20 +160,13 @@ ACADEMIC_APIS = {
         'BASE_URL': 'https://www.searchapi.io/api/v1/search',
         'ENABLED': get_env_variable('GOOGLE_SCHOLAR_ENABLED', 'True').lower() == 'true'
     },
-    'SEMANTIC_SCHOLAR': {
-        'API_KEY': get_env_variable('SEMANTIC_SCHOLAR_API_KEY', ''),  # Optional, higher rate limits with key
-        'BASE_URL': 'https://api.semanticscholar.org/graph/v1',
-        'ENABLED': get_env_variable('SEMANTIC_SCHOLAR_ENABLED', 'True').lower() == 'true'
-    },
-    'IEEE_XPLORE': {
-        'API_KEY': get_env_variable('IEEE_XPLORE_API_KEY'),
-        'BASE_URL': 'https://ieeexploreapi.ieee.org/api/v1/search/articles',
-        'ENABLED': get_env_variable('IEEE_XPLORE_ENABLED', 'True').lower() == 'true'
-    },
     'SPRINGER': {
         'API_KEY': get_env_variable('SPRINGER_API_KEY'),
         'BASE_URL': 'http://api.springernature.com/meta/v2/json',
         'ENABLED': get_env_variable('SPRINGER_ENABLED', 'True').lower() == 'true'
+    },
+    'PUBMED': {
+        'ENABLED' : get_env_variable('PUBMED_ENABLED', 'True').lower() == 'true'
     },
     'ELSEVIER': {
         'API_KEY': get_env_variable('ELSEVIER_API_KEY'),
@@ -204,17 +197,6 @@ API_TIMEOUTS = {
     'IEEE_XPLORE': 20,
     'SPRINGER': 15,
     'ELSEVIER': 20
-}
-
-FIREBASE_CONFIG = {
-    "apiKey": get_env_variable('FIREBASE_API', ''),
-    "authDomain": get_env_variable('FIREBASE_AUTH_DOMAIN', ''),
-    "databaseURL": get_env_variable('FIREBASE_DATABASE_URL', ''),
-    "projectId": get_env_variable('FIREBASE_PROJECT_ID', ''),
-    "storageBucket": get_env_variable('FIREBASE_STORAGE_BUCKET', ''),
-    "messagingSenderId": get_env_variable('FIREBASE_MESSAGING_SENDER_ID', ''),
-    "appId": get_env_variable('FIREBASE_APP_ID', ''),
-    "measurementId": get_env_variable('FIREBASE_MEASUREMENT_ID', ''),
 }
 
 # settings.py

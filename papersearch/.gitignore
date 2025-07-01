@@ -2,12 +2,14 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
-*.env
 .env
 *.sqlite3
+*.log
+*.pot
+*.pyc
 
 # Django Migrations
-**/migrations/
+*/migrations/*
 !*/migrations/__init__.py
 
 # Virtual Environment
@@ -41,16 +43,13 @@ media/
 .DS_Store
 Thumbs.db
 
-# Compiled files
-*.log
-*.pot
-*.pyc
-
 # Coverage reports
 htmlcov/
 coverage.xml
 *.cover
 .cache
+.pytest_cache/
+.mypy_cache/
 
 # Build
 build/

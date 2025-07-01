@@ -36,6 +36,7 @@ def signup_view(request):
         form = UserCreationForm()
     return render(request, 'signup.html', {'form': form})
 
+from urllib.parse import urlparse, urlencode, parse_qs
 def login_view(request):
     if request.method == 'POST':
         form = AuthenticationForm(data=request.POST)
@@ -43,15 +44,47 @@ def login_view(request):
             user = form.get_user()
             login(request, user)
             messages.success(request, f"Welcome back, {user.username}!")
-            # Redirect to a specific page or the previous page if 'next' is in GET parameters
-            if 'next' in request.POST:
-                return redirect(request.POST.get('next'))
+
+            # Handle redirect with preserved parameters
+            next_url = request.POST.get('next') or request.GET.get('next')
+            if next_url:
+                # Parse the URL and maintain all query parameters
+                from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+                
+                parsed_url = urlparse(next_url)
+                query_params = parse_qs(parsed_url.query)
+                
+                # Convert back to proper format (parse_qs creates lists)
+                clean_params = {}
+                for key, value_list in query_params.items():
+                    if value_list:
+                        clean_params[key] = value_list[0]
+                
+                # Reconstruct URL with all parameters
+                new_query = urlencode(clean_params)
+                final_url = urlunparse((
+                    parsed_url.scheme,
+                    parsed_url.netloc,
+                    parsed_url.path,
+                    parsed_url.params,
+                    new_query,
+                    parsed_url.fragment
+                ))
+                
+                return redirect(final_url)
             return redirect('home')
         else:
             messages.error(request, "Invalid username or password.")
     else:
         form = AuthenticationForm()
-    return render(request, 'login.html', {'form': form})
+
+    # Preserve 'next' from GET so it can be rendered in the form
+    next_param = request.GET.get('next', '')
+
+    return render(request, 'login.html', {
+        'form': form,
+        'next': next_param,
+    })
 
 @login_required
 def logout_view(request):
@@ -63,44 +96,42 @@ def land(request):
     return render(request, 'landing.html')
 
 def home(request):
-    print("DEBUG: request.GET =", dict(request.GET))
     query = request.GET.get('query', '').strip()
     sources = request.GET.getlist('sources')
-    print("DEBUG: Selected sources from form:", sources)
+    bookmark_lists = BookmarkList.objects.filter(user=request.user) if request.user.is_authenticated else []
 
     if not sources:
-        print("DEBUG: No sources selected, defaulting to ['arxiv']")
         sources = ['arxiv']
 
     papers = []
     search_stats = {}
+    keywords = []
 
     if query and len(query) < 2:
         messages.warning(request, 'Search query must be at least 2 characters long.')
-        print("DEBUG: Query too short:", query)
         query = ''
 
     if query:
         try:
-            print("DEBUG: Initiating search with query:", query, "and sources:", sources)
             papers, search_stats = search_multiple_sources(query, sources)
-            print("DEBUG: Search stats:", search_stats)
             total_papers = len(papers)
             if total_papers > 0:
-                print(f"DEBUG: Found {total_papers} papers from {len([s for s in search_stats.values() if s.get('count', 0) > 0])} sources.")
                 messages.success(request, f'Found {total_papers} papers from {len([s for s in search_stats.values() if s.get("count", 0) > 0])} sources.')
             else:
-                print("DEBUG: No papers found.")
-                messages.info(request, 'No papers found. Try adjusting your search terms or selecting different sources.')
+                messages.info(request, 'No papers found. Try different sources or queries.')
+
+            # ✅ Store the query for autocomplete (unique)
+            if len(query) >= 2:
+                SearchQuery.objects.get_or_create(query=query)
+
+            # ✅ Extract keywords from fetched paper titles
+            keywords = extract_keywords_from_papers(papers)
+
         except Exception as e:
-            logger.error(f"Search error: {e}")
-            print("DEBUG: Exception during search:", e)
-            messages.error(request, 'An error occurred during search. Please try again.')
+            print("Search error:", e)
+            messages.error(request, 'An error occurred during search.')
 
     available_sources = get_available_sources()
-    print("DEBUG: Available sources for checkboxes:", [s['id'] for s in available_sources])
-    print("DEBUG: Passing selected_sources to template:", sources)
-    print("DEBUG: Passing available_sources to template:", [s['id'] for s in available_sources])
 
     context = {
         'query': query,
@@ -110,8 +141,10 @@ def home(request):
         'search_stats': search_stats,
         'total_results': len(papers),
         'search_performed': bool(query),
+        'bookmark_lists': bookmark_lists,
+        'suggested_keywords': keywords,
     }
-    print("DEBUG: Context for template:", {k: (v if k != 'papers' else f'{len(v)} papers') for k, v in context.items()})
+
     return render(request, 'home.html', context)
 
 logger = logging.getLogger(__name__)
@@ -129,17 +162,7 @@ def get_available_sources():
             'quality': 'High',
             'fields': ['Physics', 'Mathematics', 'Computer Science', 'Biology']
         })
-    if getattr(settings, 'ACADEMIC_APIS', {}).get('SEMANTIC_SCHOLAR', {}).get('ENABLED', True):
-        sources.append({
-            'id': 'semantic_scholar',
-            'name': 'Semantic Scholar',
-            'icon': 'fas fa-brain',
-            'description': 'AI-powered academic search with citation analysis',
-            'free': True,
-            'rate_limit': 100,
-            'quality': 'High',
-            'fields': ['All Fields']
-        })
+    
     if getattr(settings, 'ACADEMIC_APIS', {}).get('GOOGLE_SCHOLAR', {}).get('ENABLED', False):
         api_key = getattr(settings, 'ACADEMIC_APIS', {}).get('GOOGLE_SCHOLAR', {}).get('API_KEY')
         sources.append({
@@ -153,19 +176,20 @@ def get_available_sources():
             'fields': ['All Fields'],
             'configured': bool(api_key)
         })
-    if getattr(settings, 'ACADEMIC_APIS', {}).get('IEEE_XPLORE', {}).get('ENABLED', False):
-        api_key = getattr(settings, 'ACADEMIC_APIS', {}).get('IEEE_XPLORE', {}).get('API_KEY')
+    if getattr(settings, 'ACADEMIC_APIS', {}).get('PUBMED', {}).get('ENABLED', True):
+        api_key = getattr(settings, 'ACADEMIC_APIS', {}).get('PUBMED', {}).get('API_KEY')
         sources.append({
-            'id': 'ieee_xplore',
-            'name': 'IEEE Xplore',
-            'icon': 'fas fa-microchip',
-            'description': 'Premier source for engineering and technology research',
-            'free': False,
-            'rate_limit': 200,
-            'quality': 'Very High',
-            'fields': ['Engineering', 'Computer Science', 'Technology'],
-            'configured': bool(api_key)
+            'id': 'pubmed',
+            'name': 'PubMed',
+            'icon': 'fas fa-notes-medical',
+            'description': 'Biomedical and life sciences literature by NCBI',
+            'free': True,
+            'rate_limit': 300,  # E-utilities has generous rate limits with API key
+            'quality': 'High',
+            'fields': ['Medicine', 'Pharmacy', 'Biology', 'Healthcare'],
+            'configured': True  # PubMed works without an API key too
         })
+
     if getattr(settings, 'ACADEMIC_APIS', {}).get('SPRINGER', {}).get('ENABLED', False):
         api_key = getattr(settings, 'ACADEMIC_APIS', {}).get('SPRINGER', {}).get('API_KEY')
         sources.append({
@@ -199,9 +223,8 @@ def search_multiple_sources(query, sources, max_results_per_source=15):
     search_stats = {}
     search_functions = {
         'arxiv': search_arxiv_papers,
-        'semantic_scholar': search_semantic_scholar,
         'google_scholar': search_google_scholar,
-        'ieee_xplore': search_ieee_xplore,
+        'pubmed': search_pubmed,
         'springer': search_springer,
         'elsevier': search_elsevier
     }
@@ -211,7 +234,7 @@ def search_multiple_sources(query, sources, max_results_per_source=15):
     with ThreadPoolExecutor(max_workers=min(len(valid_sources), 6)) as executor:
         future_to_source = {}
         for source in valid_sources:
-            print(f"DEBUG: Submitting search for source: {source}")
+            # print(f"DEBUG: Submitting search for source: {source}")
             source_config = getattr(settings, 'ACADEMIC_APIS', {}).get(source.upper(), {})
             if not source_config.get('ENABLED', source in ['arxiv', 'semantic_scholar']):
                 search_stats[source] = {
@@ -291,150 +314,150 @@ def search_arxiv_papers(query, max_results=20):
         logger.error(f"Unexpected error fetching arXiv papers: {e}")
         raise Exception("Error processing arXiv results")
 
-def search_semantic_scholar(query, max_results=20):
-    print("DEBUG: search_semantic_scholar called")
-    base_url = f"{getattr(settings, 'ACADEMIC_APIS', {}).get('SEMANTIC_SCHOLAR', {}).get('BASE_URL', 'https://api.semanticscholar.org/graph/v1')}/paper/search"
-    headers = {'User-Agent': 'Research-Hub/1.0'}
-    api_key = getattr(settings, 'ACADEMIC_APIS', {}).get('SEMANTIC_SCHOLAR', {}).get('API_KEY')
-    if api_key:
-        headers['x-api-key'] = api_key
-    params = {
-        'query': query,
-        'limit': max_results,
-        'fields': 'title,authors,abstract,url,year,citationCount,venue,externalIds,openAccessPdf,publicationTypes,fieldsOfStudy'
-    }
-    try:
-        response = requests.get(base_url, params=params, headers=headers, timeout=15)
-        response.raise_for_status()
-        data = response.json()
-        papers = []
-        for item in data.get('data', []):
-            if not item.get('title') or len(item.get('title', '')) < 5:
-                continue
-            paper = {
-                'title': clean_text(item.get('title', 'No title')),
-                'authors': [author.get('name', '') for author in item.get('authors', [])],
-                'summary': clean_text(item.get('abstract', 'No abstract available')[:500]),
-                'link': item.get('url', ''),
-                'pdf_link': '',
-                'published': format_publication_date(item.get('year')),
-                'category': item.get('venue', 'General Research'),
-                'source': 'Semantic Scholar',
-                'source_icon': 'fas fa-brain',
-                'citation_count': item.get('citationCount', 0),
-                'categories': item.get('fieldsOfStudy', []),
-                'publication_types': item.get('publicationTypes', [])
-            }
-            if item.get('openAccessPdf') and item['openAccessPdf'].get('url'):
-                paper['pdf_link'] = item['openAccessPdf']['url']
-            elif item.get('externalIds', {}).get('ArXiv'):
-                paper['pdf_link'] = f"https://arxiv.org/pdf/{item['externalIds']['ArXiv']}.pdf"
-            paper['relevance_score'] = calculate_relevance_score(paper, query)
-            papers.append(paper)
-        return papers
-    except requests.RequestException as e:
-        logger.error(f"Network error fetching Semantic Scholar papers: {e}")
-        raise Exception("Network error accessing Semantic Scholar")
-    except Exception as e:
-        logger.error(f"Error fetching Semantic Scholar papers: {e}")
-        raise Exception("Error processing Semantic Scholar results")
 
 def search_google_scholar(query, max_results=10):
     api_key = getattr(settings, 'ACADEMIC_APIS', {}).get('GOOGLE_SCHOLAR', {}).get('API_KEY')
-    search_engine_id = getattr(settings, 'ACADEMIC_APIS', {}).get('GOOGLE_SCHOLAR', {}).get('SEARCH_ENGINE_ID')
-    if not api_key or not search_engine_id:
-        raise Exception("Google Scholar API credentials not configured")
-    base_url = getattr(settings, 'ACADEMIC_APIS', {}).get('GOOGLE_SCHOLAR', {}).get('BASE_URL', 'https://www.googleapis.com/customsearch/v1')
-    academic_query = f'"{query}" (filetype:pdf OR site:scholar.google.com OR site:arxiv.org OR site:semanticscholar.org)'
-    params = {
-        'key': api_key,
-        'cx': search_engine_id,
-        'q': academic_query,
-        'num': min(max_results, 10),
-        'searchType': 'web',
-        'lr': 'lang_en',
-        'safe': 'active'
-    }
-    try:
-        response = requests.get(base_url, params=params, timeout=20)
-        response.raise_for_status()
-        data = response.json()
-        papers = []
-        for item in data.get('items', []):
-            title = clean_text(item.get('title', 'No title'))
-            snippet = item.get('snippet', '')
-            paper = {
-                'title': title,
-                'authors': extract_authors_from_snippet(snippet),
-                'summary': clean_text(snippet)[:400],
-                'link': item.get('link', ''),
-                'pdf_link': item.get('link', '') if 'pdf' in item.get('link', '').lower() else '',
-                'published': extract_year_from_snippet(snippet),
-                'category': extract_field_from_snippet(snippet),
-                'source': 'Google Scholar',
-                'source_icon': 'fab fa-google',
-                'categories': [],
-                'relevance_score': calculate_relevance_score({'title': title, 'summary': snippet}, query)
-            }
-            papers.append(paper)
-        return papers
-    except Exception as e:
-        logger.error(f"Error fetching Google Scholar papers: {e}")
-        raise Exception("Error accessing Google Scholar")
+    base_url = getattr(settings, 'ACADEMIC_APIS', {}).get('GOOGLE_SCHOLAR', {}).get('BASE_URL', 'https://www.searchapi.io/api/v1/search')
 
-def search_ieee_xplore(query, max_results=20):
-    api_key = getattr(settings, 'ACADEMIC_APIS', {}).get('IEEE_XPLORE', {}).get('API_KEY')
     if not api_key:
-        raise Exception("IEEE Xplore API key not configured")
-    base_url = getattr(settings, 'ACADEMIC_APIS', {}).get('IEEE_XPLORE', {}).get('BASE_URL', 'https://ieeexploreapi.ieee.org/api/v1/search/articles')
+        raise Exception("Google Scholar API key not configured")
+
     params = {
-        'apikey': api_key,
-        'querytext': query,
-        'max_records': max_results,
-        'start_record': 1,
-        'sort_field': 'relevance',
-        'sort_order': 'desc',
-        'format': 'json'
+        'api_key': api_key,
+        'engine': 'google_scholar',
+        'q': query,
     }
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0'
+    }
+
     try:
-        response = requests.get(base_url, params=params, timeout=25)
+        response = requests.get(base_url, params=params, headers=headers, timeout=20)
+        print("Requested URL:", response.url)
+        print("Status Code:", response.status_code)
+
         response.raise_for_status()
         data = response.json()
-        papers = []
-        for item in data.get('articles', []):
-            if not item.get('title'):
-                continue
-            paper = {
-                'title': clean_text(item.get('title', 'No title')),
-                'authors': extract_ieee_authors(item.get('authors', {})),
-                'summary': clean_text(item.get('abstract', 'No abstract available')[:500]),
-                'link': item.get('html_url', ''),
-                'pdf_link': item.get('pdf_url', ''),
-                'published': format_publication_date(item.get('publication_year')),
-                'category': clean_text(item.get('publication_title', 'Engineering')),
-                'source': 'IEEE Xplore',
-                'source_icon': 'fas fa-microchip',
-                'categories': [],
-                'citation_count': item.get('citing_paper_count', 0)
-            }
-            paper['relevance_score'] = calculate_relevance_score(paper, query)
-            papers.append(paper)
-        return papers
-    except Exception as e:
-        logger.error(f"Error fetching IEEE Xplore papers: {e}")
-        raise Exception("Error accessing IEEE Xplore")
 
-def extract_ieee_authors(authors_data):
-    if not authors_data:
-        return []
-    authors = []
-    if isinstance(authors_data, dict) and 'authors' in authors_data:
-        for author in authors_data['authors']:
-            if isinstance(author, dict):
-                name = author.get('full_name', '')
-                if name:
-                    authors.append(name)
-    return authors
+        # Optional: Print entire JSON response for debugging
+        print("Response JSON:", json.dumps(data, indent=2))
+
+        results = data.get('organic_results', [])
+        if not results:
+            print("⚠️ No organic_results found.")
+            return []
+
+        papers = []
+        for item in results[:max_results]:
+            try:
+                title = clean_text(item.get('title', 'No title'))
+                snippet = item.get('snippet', '')
+                link = item.get('link', '')
+                pdf_link = item.get('resource', {}).get('link', '') if item.get('resource', {}).get('format', '').lower() == 'pdf' else ''
+
+                # Extract authors list if available
+                authors = []
+                for a in item.get('authors', []):
+                    authors.append(a.get('name'))
+
+                paper = {
+                    'title': title,
+                    'authors': authors,
+                    'summary': clean_text(snippet)[:400],
+                    'link': link,
+                    'pdf_link': pdf_link,
+                    'published': item.get('publication', '').split(",")[-1].strip(),  # crude year extraction
+                    'category': '',
+                    'source': 'Google Scholar',
+                    'source_icon': 'fab fa-google',
+                    'categories': [],
+                    'relevance_score': calculate_relevance_score({'title': title, 'summary': snippet}, query)
+                }
+                print("✅ Added:", paper['title'])
+                papers.append(paper)
+            except Exception as e:
+                print("❌ Error parsing item:", e)
+
+        return papers
+
+    except Exception as e:
+        logger.error(f"Error fetching papers from SearchAPI.io: {e}")
+        raise Exception("Error accessing Google Scholar API")
+
+import xml.etree.ElementTree as ET
+
+def search_pubmed(query, max_results=20):
+    import requests
+    from urllib.parse import urlencode
+
+    esearch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+    efetch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+
+    search_params = {
+        'db': 'pubmed',
+        'term': query,
+        'retmode': 'json',
+        'retmax': max_results
+    }
+
+    try:
+        # Step 1: Search for PubMed IDs
+        esearch_response = requests.get(esearch_url, params=search_params, timeout=10)
+        esearch_response.raise_for_status()
+        id_list = esearch_response.json().get('esearchresult', {}).get('idlist', [])
+        if not id_list:
+            return []
+
+        # Step 2: Fetch details using efetch
+        fetch_params = {
+            'db': 'pubmed',
+            'id': ','.join(id_list),
+            'retmode': 'xml'
+        }
+        efetch_response = requests.get(efetch_url, params=fetch_params, timeout=15)
+        efetch_response.raise_for_status()
+
+        # Step 3: Parse XML
+        root = ET.fromstring(efetch_response.content)
+        papers = []
+        for article in root.findall('.//PubmedArticle'):
+            title = article.findtext('.//ArticleTitle', default='No Title')
+            abstract = article.findtext('.//Abstract/AbstractText', default='No abstract available')
+            pub_year = article.findtext('.//PubDate/Year', default='Unknown')
+            journal = article.findtext('.//Journal/Title', default='Medical Research')
+            article_id = article.findtext('.//ArticleId[@IdType="pubmed"]', default='')
+
+            # Authors
+            authors = []
+            for author in article.findall('.//Author'):
+                last = author.findtext('LastName')
+                first = author.findtext('ForeName')
+                if last and first:
+                    authors.append(f"{first} {last}")
+
+            paper = {
+                'title': clean_text(title),
+                'authors': authors,
+                'summary': clean_text(abstract[:500]),
+                'link': f"https://pubmed.ncbi.nlm.nih.gov/{article_id}/",
+                'pdf_link': '',  # PubMed doesn’t host PDFs directly
+                'published': format_publication_date(pub_year),
+                'category': clean_text(journal),
+                'source': 'PubMed',
+                'source_icon': 'fas fa-notes-medical',
+                'categories': [],
+                'citation_count': 0,  # Not directly available from PubMed
+                'relevance_score': calculate_relevance_score({'title': title, 'summary': abstract}, query)
+            }
+            papers.append(paper)
+
+        return papers
+
+    except Exception as e:
+        logger.error(f"Error fetching PubMed papers: {e}")
+        raise Exception("Error accessing PubMed")
+
 
 def search_springer(query, max_results=20):
     print("DEBUG: search_springer called")
@@ -744,17 +767,23 @@ def view_bookmark_lists(request):
 
 
 @login_required
-def add_bookmark(request, list_id):
-    bookmark_list = get_object_or_404(BookmarkList, id=list_id, user=request.user)
-
+def add_bookmark(request, list_id=0):
     if request.method == 'POST':
-        # These should be passed from the frontend
         title = request.POST.get('title')
         author = request.POST.get('author')
         link = request.POST.get('link')
         published = request.POST.get('published')
         category = request.POST.get('category')
         citation_count = request.POST.get('citation_count', 0)
+
+        # Handle list
+        list_id = request.POST.get('list_id')
+        new_list_name = request.POST.get('new_list_name')
+
+        if new_list_name:
+            bookmark_list = BookmarkList.objects.create(user=request.user, name=new_list_name)
+        else:
+            bookmark_list = get_object_or_404(BookmarkList, id=list_id, user=request.user)
 
         BookmarkedPaper.objects.create(
             bookmark_list=bookmark_list,
@@ -765,6 +794,240 @@ def add_bookmark(request, list_id):
             category=category,
             citation_count=citation_count
         )
+
         return redirect('view_bookmark_lists')
 
-    return render(request, 'add_bookmark.html', {'bookmark_list': bookmark_list})
+# views.py
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .models import SearchQuery, BookmarkList
+from django.views.decorators.http import require_GET
+from django.http import JsonResponse
+from rake_nltk import Rake
+
+import nltk
+nltk.download('stopwords')
+
+# In-memory keyword cache (optional, could use Django cache later)
+EXTRACTED_KEYWORDS = set()
+
+def extract_keywords_from_papers(papers):
+    global EXTRACTED_KEYWORDS
+    r = Rake()
+    all_titles = ' '.join(p['title'] for p in papers if 'title' in p)
+    r.extract_keywords_from_text(all_titles)
+    keywords = r.get_ranked_phrases()[:20]
+    EXTRACTED_KEYWORDS.update(keywords)
+    return list(EXTRACTED_KEYWORDS)
+
+# views.py - Add this to your existing views.py file
+
+import json
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q
+import re
+
+# Common academic keywords and research terms
+ACADEMIC_KEYWORDS = [
+    # Computer Science
+    'machine learning', 'artificial intelligence', 'deep learning', 'neural networks',
+    'natural language processing', 'computer vision', 'data mining', 'algorithms',
+    'software engineering', 'cybersecurity', 'blockchain', 'cloud computing',
+    'quantum computing', 'robotics', 'human-computer interaction', 'database systems',
+    
+    # Data Science & Analytics
+    'data science', 'big data', 'data analysis', 'statistical analysis',
+    'predictive modeling', 'classification', 'regression', 'clustering',
+    'dimensionality reduction', 'feature selection', 'time series analysis',
+    
+    # Biology & Medicine
+    'bioinformatics', 'genomics', 'proteomics', 'molecular biology',
+    'neuroscience', 'cancer research', 'drug discovery', 'clinical trials',
+    'epidemiology', 'public health', 'genetics', 'immunology',
+    
+    # Physics & Engineering
+    'quantum mechanics', 'particle physics', 'materials science',
+    'renewable energy', 'nanotechnology', 'biomedical engineering',
+    'electrical engineering', 'mechanical engineering', 'civil engineering',
+    
+    # Social Sciences
+    'psychology', 'sociology', 'economics', 'political science',
+    'anthropology', 'education research', 'behavioral economics',
+    'social network analysis', 'survey research', 'qualitative research',
+    
+    # Environmental Sciences
+    'climate change', 'environmental science', 'sustainability',
+    'ecology', 'conservation biology', 'renewable resources',
+    'pollution control', 'green technology', 'carbon footprint',
+    
+    # Business & Management
+    'business analytics', 'supply chain management', 'marketing research',
+    'organizational behavior', 'strategic management', 'entrepreneurship',
+    'financial modeling', 'risk management', 'operations research',
+    
+    # Research Methods
+    'systematic review', 'meta-analysis', 'randomized controlled trial',
+    'case study', 'experimental design', 'statistical significance',
+    'correlation analysis', 'longitudinal study', 'cross-sectional study'
+]
+
+# Recent trending topics in research
+TRENDING_TOPICS = [
+    'covid-19', 'coronavirus', 'pandemic', 'vaccine development',
+    'remote work', 'online learning', 'digital transformation',
+    'climate change mitigation', 'sustainable development',
+    'artificial general intelligence', 'large language models',
+    'metaverse', 'web3', 'cryptocurrency', 'nft',
+    'electric vehicles', 'battery technology', 'solar energy',
+    'gene therapy', 'crispr', 'personalized medicine',
+    'space exploration', 'mars colonization', 'satellite technology'
+]
+
+@require_http_methods(["GET"])
+def autocomplete_suggestions(request):
+    """
+    Provide autocomplete suggestions for search queries
+    """
+    term = request.GET.get('term', '').strip().lower()
+    
+    if len(term) < 2:
+        return JsonResponse({'suggestions': []})
+    
+    suggestions = []
+    
+    # Search in academic keywords
+    matching_keywords = [
+        keyword for keyword in ACADEMIC_KEYWORDS 
+        if term in keyword.lower()
+    ]
+    
+    # Search in trending topics
+    matching_trends = [
+        topic for topic in TRENDING_TOPICS 
+        if term in topic.lower()
+    ]
+    
+    # Combine and deduplicate
+    all_matches = list(set(matching_keywords + matching_trends))
+    
+    # Sort by relevance (exact matches first, then contains)
+    exact_matches = [match for match in all_matches if match.lower().startswith(term)]
+    contains_matches = [match for match in all_matches if term in match.lower() and not match.lower().startswith(term)]
+    
+    # Combine and limit results
+    suggestions = (exact_matches + contains_matches)[:10]
+    
+    # If we have previous searches (for logged-in users), include them
+    if request.user.is_authenticated:
+        # You can add logic here to fetch user's previous searches from database
+        # For now, we'll just use the keyword suggestions
+        pass
+    
+    return JsonResponse({
+        'suggestions': suggestions,
+        'total': len(suggestions)
+    })
+
+# Alternative implementation if you want to store and retrieve actual search history
+@login_required
+@require_http_methods(["GET"])
+def user_search_history(request):
+    """
+    Get user's search history for autocomplete
+    """
+    # This assumes you have a SearchHistory model
+    # You'll need to create this model and save searches
+    
+    term = request.GET.get('term', '').strip().lower()
+    suggestions = []
+    
+    if len(term) >= 2:
+        # Example: If you have a SearchHistory model
+        # from .models import SearchHistory
+        # 
+        # recent_searches = SearchHistory.objects.filter(
+        #     user=request.user,
+        #     query__icontains=term
+        # ).order_by('-created_at')[:5]
+        # 
+        # suggestions = [search.query for search in recent_searches]
+        pass
+    
+    return JsonResponse({
+        'suggestions': suggestions,
+        'total': len(suggestions)
+    })
+
+# Smart autocomplete that combines multiple sources
+@require_http_methods(["GET"])
+def smart_autocomplete(request):
+    """
+    Advanced autocomplete that combines multiple sources
+    """
+    term = request.GET.get('term', '').strip().lower()
+    
+    if len(term) < 2:
+        return JsonResponse({'suggestions': []})
+    
+    suggestions = []
+    
+    # 1. Exact prefix matches (highest priority)
+    exact_matches = [
+        keyword for keyword in ACADEMIC_KEYWORDS 
+        if keyword.lower().startswith(term)
+    ]
+    
+    # 2. Word boundary matches
+    word_matches = [
+        keyword for keyword in ACADEMIC_KEYWORDS 
+        if re.search(r'\b' + re.escape(term), keyword.lower())
+        and not keyword.lower().startswith(term)
+    ]
+    
+    # 3. Trending topics
+    trending_matches = [
+        topic for topic in TRENDING_TOPICS 
+        if term in topic.lower()
+    ]
+    
+    # 4. Fuzzy matches (for typos)
+    fuzzy_matches = []
+    for keyword in ACADEMIC_KEYWORDS:
+        if len(term) >= 3:  # Only for longer terms
+            # Simple fuzzy matching - you can enhance this with libraries like fuzzywuzzy
+            keyword_lower = keyword.lower()
+            if (abs(len(term) - len(keyword_lower)) <= 2 and 
+                sum(1 for a, b in zip(term, keyword_lower) if a == b) / max(len(term), len(keyword_lower)) > 0.7):
+                fuzzy_matches.append(keyword)
+    
+    # Combine all suggestions with priorities
+    all_suggestions = []
+    
+    # Add exact matches first
+    all_suggestions.extend(exact_matches[:3])
+    
+    # Add word matches
+    all_suggestions.extend([m for m in word_matches if m not in all_suggestions][:3])
+    
+    # Add trending topics
+    all_suggestions.extend([m for m in trending_matches if m not in all_suggestions][:2])
+    
+    # Add fuzzy matches
+    all_suggestions.extend([m for m in fuzzy_matches if m not in all_suggestions][:2])
+    
+    # Limit total suggestions
+    suggestions = all_suggestions[:10]
+    
+    return JsonResponse({
+        'suggestions': suggestions,
+        'total': len(suggestions),
+        'categories': {
+            'exact': len(exact_matches),
+            'word': len(word_matches),
+            'trending': len(trending_matches),
+            'fuzzy': len(fuzzy_matches)
+        }
+    })
