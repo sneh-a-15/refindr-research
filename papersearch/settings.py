@@ -19,12 +19,12 @@ SECRET_KEY = os.environ.get(
 DEBUG = os.environ.get('DEBUG', 'true').lower() in ('1', 'true', 'yes')
 
 # ALLOWED_HOSTS: comma-separated env var (e.g. "example.com,127.0.0.1")
-_allowed_hosts = os.environ.get('ALLOWED_HOSTS', '')
-if _allowed_hosts:
-    ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts.split(',') if h.strip()]
-else:
-    # sensible local defaults
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+# _allowed_hosts = os.environ.get('ALLOWED_HOSTS', '')
+# if _allowed_hosts:
+#     ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts.split(',') if h.strip()]
+# else:
+#     # sensible local defaults
+ALLOWED_HOSTS = ['refindr-research.onrender.com','localhost', '127.0.0.1']
 
 # Application definition
 
