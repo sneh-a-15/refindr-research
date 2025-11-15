@@ -9,3 +9,4 @@ django-widget-tweaks
 requests
 pyrebase4
 setuptools
+rake_nltk
