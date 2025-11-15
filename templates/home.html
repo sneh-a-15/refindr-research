@@ -1,14 +1,15 @@
+
 {% extends 'base.html' %}
 {% block title %}ReFindr - Find Academic Papers{% endblock %}
 {% block content %}
-<div class="min-h-screen" style="background-color: #f5f1e8">
-  <section class="pt-16 pb-8">
+<div class="min-h-screen" style="background-color: #fef7e0">
+  <section class="pt-24 pb-8">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
       {% if user.is_authenticated %}
       <h1 class="text-4xl md:text-5xl font-bold text-amber-900 mb-4">
         Welcome back, {{ user.username }}!
       </h1>
-      <p class="text-lg text-amber-800 mb-12 max-w-2xl mx-auto">
+      <p class="text-lg text-amber-800 mb-2 max-w-2xl mx-auto">
         Continue your research journey and explore new papers.
       </p>
       {% else %}
@@ -51,65 +52,75 @@
         </div>
 
         <!-- Suggested Keywords Section -->
-        {% if suggested_keywords %}
-        <div class="mb-6">
-          <h3 class="text-sm font-medium text-amber-900 mb-3">
-            <i class="fas fa-lightbulb mr-2"></i>Suggested Keywords:
-          </h3>
-          <div class="flex flex-wrap gap-2">
-            {% for keyword in suggested_keywords|slice:":10" %}
-            <button
-              type="button"
-              class="bg-amber-50 hover:bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm border border-amber-200 transition-colors keyword-suggestion"
-              data-keyword="{{ keyword }}"
-            >
-              {{ keyword }}
-            </button>
-            {% endfor %}
-          </div>
-        </div>
-        {% endif %}
+        <!-- {% if suggested_keywords %}
+<div class="mb-6">
+  <h3 class="text-sm font-medium text-amber-900 mb-3">
+    <i class="fas fa-lightbulb mr-2" aria-hidden="true"></i>Suggested Keywords:
+  </h3> -->
+
+  <!-- allow chips to wrap to next line -->
+  <!-- <div class="flex flex-wrap gap-2 items-center py-1" role="list" aria-label="Suggested keywords">
+    {% for keyword in suggested_keywords|slice:":5" %}
+      <button
+        type="button"
+        class="keyword-chip bg-amber-50 hover:bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm border border-amber-200 transition-colors"
+        data-keyword="{{ keyword }}"
+        role="listitem"
+      >
+        {{ keyword }}
+      </button>
+    {% endfor %}
+  </div>
+</div>
+
+
+{% endif %} -->
+
 
         <div class="mb-8">
-          <h3 class="text-lg font-semibold text-amber-900 mb-4">
-            Select Sources to Search:
-          </h3>
-          <div class="flex flex-wrap gap-3">
-            {% for source in available_sources %}
-              {% with "source-"|add:source.id as checkbox_id %}
-                <input
-                  type="checkbox"
-                  name="sources"
-                  value="{{ source.id }}"
-                  id="{{ checkbox_id }}"
-                  class="peer hidden"
-                  {% if source.id in selected_sources %}checked{% endif %}
-                />
-                <label
-                  for="{{ checkbox_id }}"
-                  class="bg-white border-2 border-amber-200 text-amber-700 px-6 py-3 rounded-full cursor-pointer hover:bg-amber-900 hover:text-white transition-all font-medium peer-checked:bg-amber-900 peer-checked:text-white peer-checked:border-amber-900 source-label-hover"
-                >
-                  <i class="{{ source.icon }} mr-2"></i>{{ source.name }}
-                  {% if not source.free %}
-                    <i class="fas fa-crown text-yellow-500 ml-1" title="Premium API required"></i>
-                  {% endif %}
-                </label>
-              {% endwith %}
-            {% empty %}
-              <p class="text-sm text-red-600">No sources available.</p>
-            {% endfor %}
-          </div>
-          <p class="text-sm text-amber-700 mt-3">
-            <i class="fas fa-info-circle mr-2"></i>
-            Select at least one source. Free sources work without API keys.
-          </p>
-        </div>
+  <h3 class="text-lg font-semibold text-amber-900 mb-4">
+    Select Sources to Search:
+  </h3>
+
+  <div class="flex flex-wrap gap-3">
+    {% for source in available_sources %}
+        <!-- Checkbox: hidden -->
+        <input
+          type="checkbox"
+          name="sources"
+          value="{{ source.id }}"
+          id="source-{{ source.id }}"
+          class="hidden source-checkbox"
+          {% if source.id|stringformat:"s" in selected_sources %}checked{% endif %}
+        />
+
+        <!-- Label styled as button -->
+        <label
+          for="source-{{ source.id }}"
+          class="source-label bg-white text-amber-700 border-2 border-amber-200 px-6 py-3 rounded-full cursor-pointer font-medium transition-all hover:bg-amber-900 hover:text-white hover:border-amber-900"
+        >
+          <i class="{{ source.icon }} mr-2"></i>{{ source.name }}
+          {% if not source.free %}
+            <i class="fas fa-crown text-yellow-500 ml-1" title="Premium API required"></i>
+          {% endif %}
+        </label>
+    {% empty %}
+      <p class="text-sm text-red-600">No sources available.</p>
+    {% endfor %}
+  </div>
+
+  <p class="text-sm text-amber-700 mt-3">
+    <i class="fas fa-info-circle mr-2"></i>
+    Select at least one source. Free sources work without API keys.
+  </p>
+</div>
+
       </form>
     </div>
   </section>
 
-  {% if search_stats %}
-  <section class="pb-8">
+  <!-- {% if search_stats %}
+  <section class="pb-8 -mt-4">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="bg-white rounded-xl p-4 border border-amber-200 shadow-md">
         <h4 class="font-semibold text-amber-900 mb-2">
@@ -130,7 +141,7 @@
       </div>
     </div>
   </section>
-  {% endif %}
+  {% endif %} -->
 
   {% if papers %}
   <section class="pb-16">
@@ -221,15 +232,13 @@
               </a>
               {% endif %}
               {% if paper.pdf_link %}
-              <a
-                href="{{ paper.pdf_link }}"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onclick="openPDFModal('{{ paper.pdf_link }}')"
                 class="bg-amber-900 hover:bg-amber-800 text-white px-4 py-2 rounded-lg transition-colors text-sm flex items-center"
               >
                 <i class="fas fa-file-pdf mr-1"></i>
-                PDF
-              </a>
+                View PDF
+              </button>
               {% endif %}
             </div>
           </div>
@@ -319,6 +328,78 @@
   </div>
 </div>
 
+<!-- PDF Modal -->
+<div id="pdfModalBackdrop" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-lg shadow-xl border border-amber-200 w-full max-w-6xl max-h-[90vh] relative flex flex-col">
+    <!-- Header -->
+    <div class="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
+      <h3 class="text-lg font-semibold text-gray-900">PDF Viewer</h3>
+      <button onclick="closePDFModal()" class="text-gray-400 hover:text-gray-600 text-xl">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <!-- Loading indicator -->
+    <div id="pdfLoading" class="hidden flex items-center justify-center p-8">
+      <div class="flex items-center gap-3">
+        <i class="fas fa-spinner fa-spin text-amber-900 text-xl"></i>
+        <span class="text-amber-900">Loading PDF...</span>
+      </div>
+    </div>
+    
+    <!-- PDF Content -->
+    <!-- PDF Modal Backdrop -->
+<div id="pdfModalBackdrop" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-60 overflow-auto">
+  <!-- Modal Content -->
+  <div class="bg-white rounded-lg shadow-lg max-w-5xl w-full mx-auto my-8 relative flex flex-col max-h-[90vh] overflow-hidden">
+    
+    <!-- Close Button -->
+    <button onclick="closePDFModal()" class="absolute top-3 right-3 text-gray-500 hover:text-red-600 text-2xl font-bold z-10">
+      &times;
+    </button>
+
+    <!-- Modal Inner Content -->
+    <div class="flex-1 overflow-hidden flex flex-col">
+      
+      <!-- Canvas Container -->
+      <div class="flex-1 overflow-auto bg-gray-50 p-4">
+        <div class="flex justify-center">
+          <canvas id="pdfCanvas" class="border border-gray-200 rounded-lg shadow-sm max-w-full h-auto"></canvas>
+        </div>
+      </div>
+      
+      <!-- Navigation & Zoom Controls -->
+      <div class="flex items-center justify-between p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+        <button onclick="prevPage()" class="px-4 py-2 bg-amber-900 text-white rounded-lg hover:bg-amber-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+          <i class="fas fa-chevron-left mr-2"></i>Previous
+        </button>
+        
+        <div class="flex items-center gap-4">
+          <span class="text-sm text-amber-800">
+            Page <span id="page-num">1</span> of <span id="page-count">?</span>
+          </span>
+          
+          <!-- Zoom Controls -->
+          <div class="flex items-center gap-2">
+            <button onclick="zoomOut()" class="p-2 text-amber-900 hover:bg-amber-100 rounded" title="Zoom Out">
+              <i class="fas fa-search-minus"></i>
+            </button>
+            <span class="text-sm text-gray-600" id="zoom-level">100%</span>
+            <button onclick="zoomIn()" class="p-2 text-amber-900 hover:bg-amber-100 rounded" title="Zoom In">
+              <i class="fas fa-search-plus"></i>
+            </button>
+          </div>
+        </div>
+        
+        <button onclick="nextPage()" class="px-4 py-2 bg-amber-900 text-white rounded-lg hover:bg-amber-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+          Next<i class="fas fa-chevron-right ml-2"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <style>
   body {
     background-color: #f5f1e8;
@@ -335,7 +416,9 @@
       0 2px 4px -2px rgba(0, 0, 0, 0.06);
     border-color: #fcd34d;
   }
-  input[type="checkbox"].peer:checked + label {
+  
+  /* Checkbox styling */
+  .source-checkbox:checked + .source-label {
     background-color: #78350f !important;
     color: white !important;
     border-color: #78350f !important;
@@ -380,10 +463,252 @@
     transform: translateY(-1px);
     box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.1);
   }
-</style>
 
+  #pdfModalBackdrop {
+    backdrop-filter: blur(4px);
+  }
+
+  #pdfCanvas {
+    transition: transform 0.2s ease;
+  }
+
+  /* Loading spinner for PDF */
+  .pdf-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+  }
+
+  /* Smooth scrolling for PDF container */
+  .pdf-container {
+    scroll-behavior: smooth;
+  }
+</style>
 <script>
+let pdfDoc = null;
+let pageNum = 1;
+let pageRendering = false;
+let pageNumPending = null;
+let scale = 1.0;
+let canvas = null;
+let ctx = null;
+let pdfjsLoaded = false;
+let pdfjsLib = null;
+
+function loadPDFJS() {
+  return new Promise((resolve, reject) => {
+    if (pdfjsLoaded) {
+      resolve();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    script.onload = function () {
+      pdfjsLib = window['pdfjsLib'];
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      pdfjsLoaded = true;
+      resolve();
+    };
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+function openPDFModal(pdfUrl) {
+  const modal = document.getElementById('pdfModalBackdrop');
+  const loadingDiv = document.getElementById('pdfLoading');
+  canvas = document.getElementById('pdfCanvas');
+
+  if (!modal || !loadingDiv || !canvas) {
+    console.error('Required modal elements not found.');
+    return;
+  }
+
+  ctx = canvas.getContext('2d');
+  modal.classList.remove('hidden');
+  loadingDiv.classList.remove('hidden');
+
+  loadPDFJS().then(() => {
+    const container = canvas.parentElement;
+    const containerWidth = container.clientWidth - 32;
+
+    return pdfjsLib.getDocument(pdfUrl).promise;
+  }).then(pdf => {
+    pdfDoc = pdf;
+    document.getElementById('page-count').textContent = pdf.numPages;
+    return pdf.getPage(1);
+  }).then(page => {
+    const viewport = page.getViewport({ scale: 1.0 });
+    const containerWidth = canvas.parentElement.clientWidth - 32;
+    scale = Math.min(containerWidth / viewport.width, 1.5);
+    updateZoomLevel();
+    document.getElementById('pdfLoading').classList.add('hidden');
+    renderPage(pageNum);
+  }).catch(error => {
+    console.error('Error loading PDF:', error);
+    alert('Failed to load PDF.');
+    closePDFModal();
+  });
+}
+
+function closePDFModal() {
+  const modal = document.getElementById('pdfModalBackdrop');
+  const loadingDiv = document.getElementById('pdfLoading');
+
+  modal.classList.add('hidden');
+  loadingDiv.classList.add('hidden');
+
+  if (canvas) {
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+
+  pdfDoc = null;
+  pageNum = 1;
+  pageRendering = false;
+  pageNumPending = null;
+  scale = 1.0;
+}
+
+function renderPage(num) {
+  if (!pdfDoc) return;
+  pageRendering = true;
+
+  pdfDoc.getPage(num).then(page => {
+    const viewport = page.getViewport({ scale });
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const renderContext = {
+      canvasContext: ctx,
+      viewport
+    };
+
+    return page.render(renderContext).promise;
+  }).then(() => {
+    pageRendering = false;
+    if (pageNumPending !== null) {
+      renderPage(pageNumPending);
+      pageNumPending = null;
+    }
+    updateNavigationButtons();
+  }).catch(error => {
+    console.error('Error rendering page:', error);
+    pageRendering = false;
+  });
+
+  document.getElementById('page-num').textContent = num;
+}
+
+function queueRenderPage(num) {
+  if (pageRendering) {
+    pageNumPending = num;
+  } else {
+    renderPage(num);
+  }
+}
+
+function prevPage() {
+  if (!pdfDoc || pageNum <= 1) return;
+  pageNum--;
+  queueRenderPage(pageNum);
+}
+
+function nextPage() {
+  if (!pdfDoc || pageNum >= pdfDoc.numPages) return;
+  pageNum++;
+  queueRenderPage(pageNum);
+}
+
+function zoomIn() {
+  scale = Math.min(scale * 1.2, 3.0);
+  updateZoomLevel();
+  queueRenderPage(pageNum);
+}
+
+function zoomOut() {
+  scale = Math.max(scale / 1.2, 0.5);
+  updateZoomLevel();
+  queueRenderPage(pageNum);
+}
+
+function updateZoomLevel() {
+  document.getElementById('zoom-level').textContent = Math.round(scale * 100) + '%';
+}
+
+function updateNavigationButtons() {
+  const prevBtn = document.querySelector('button[onclick="prevPage()"]');
+  const nextBtn = document.querySelector('button[onclick="nextPage()"]');
+
+  if (prevBtn) prevBtn.disabled = pageNum <= 1;
+  if (nextBtn) nextBtn.disabled = pageNum >= pdfDoc.numPages;
+}
+
+window.addEventListener('resize', () => {
+  if (pdfDoc && !document.getElementById('pdfModalBackdrop').classList.contains('hidden')) {
+    const containerWidth = canvas.parentElement.clientWidth - 32;
+    pdfDoc.getPage(1).then(page => {
+      const viewport = page.getViewport({ scale: 1.0 });
+      const optimalScale = Math.min(containerWidth / viewport.width, 1.5);
+      if (Math.abs(scale - optimalScale) > 0.1) {
+        scale = optimalScale;
+        updateZoomLevel();
+        queueRenderPage(pageNum);
+      }
+    });
+  }
+});
+
+document.addEventListener('keydown', function (e) {
+  if (!document.getElementById('pdfModalBackdrop').classList.contains('hidden')) {
+    switch (e.key) {
+      case 'ArrowLeft': e.preventDefault(); prevPage(); break;
+      case 'ArrowRight': e.preventDefault(); nextPage(); break;
+      case 'Escape': e.preventDefault(); closePDFModal(); break;
+      case '+':
+      case '=': if (e.ctrlKey || e.metaKey) { e.preventDefault(); zoomIn(); } break;
+      case '-': if (e.ctrlKey || e.metaKey) { e.preventDefault(); zoomOut(); } break;
+    }
+  }
+});
+
 document.addEventListener("DOMContentLoaded", function () {
+  // Initialize checkbox states
+  function initializeCheckboxes() {
+    document.querySelectorAll('.source-checkbox').forEach(checkbox => {
+      const label = document.querySelector(`label[for="${checkbox.id}"]`);
+      if (checkbox.checked) {
+        label.classList.add('bg-amber-900', 'text-white', 'border-amber-900');
+        label.classList.remove('bg-white', 'text-amber-700', 'border-amber-200');
+      }
+      
+      checkbox.addEventListener('change', function() {
+        if (this.checked) {
+          label.classList.add('bg-amber-900', 'text-white', 'border-amber-900');
+          label.classList.remove('bg-white', 'text-amber-700', 'border-amber-200');
+        } else {
+          label.classList.remove('bg-amber-900', 'text-white', 'border-amber-900');
+          label.classList.add('bg-white', 'text-amber-700', 'border-amber-200');
+        }
+      });
+    });
+  }
+  
+  // Initialize checkboxes on page load
+  initializeCheckboxes();
+
+  // Load PDF.js library
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+  script.onload = function() {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  };
+  document.head.appendChild(script);
+
   // Autocomplete functionality
   const searchInput = document.getElementById('searchInput');
   const autocompleteDropdown = document.getElementById('autocompleteDropdown');
@@ -612,14 +937,29 @@ document.addEventListener("DOMContentLoaded", function () {
   // Make showToast available globally
   window.showToast = showToast;
 
-  // Restore scroll position from sessionStorage
-  const scrollPos = sessionStorage.getItem("scrollPos");
-  if (scrollPos) {
-    window.scrollTo(0, parseInt(scrollPos));
-    sessionStorage.removeItem("scrollPos");
+  // Memory-based scroll position storage (replaces sessionStorage)
+  let storedScrollPosition = 0;
+  
+  // Function to save scroll position
+  function saveScrollPosition() {
+    storedScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
   }
+  
+  // Function to restore scroll position
+  function restoreScrollPosition() {
+    if (storedScrollPosition > 0) {
+      window.scrollTo(0, storedScrollPosition);
+      storedScrollPosition = 0; // Reset after use
+    }
+  }
+  
+  // Save scroll position before page unload
+  window.addEventListener('beforeunload', saveScrollPosition);
+  
+  // Restore scroll position on page load
+  restoreScrollPosition();
 
-  // Check if we need to reopen modal after login
+  // Check if we need to reopen modal after login using URL parameters
   const params = new URLSearchParams(window.location.search);
   let shouldOpenModal = false;
   let modalData = {};
@@ -649,15 +989,31 @@ document.addEventListener("DOMContentLoaded", function () {
     history.replaceState({}, document.title, cleanUrl.toString());
   }
 
+  // Function to update bookmark form action
+  function updateBookmarkFormAction(listId) {
+    const bookmarkForm = document.getElementById("bookmarkForm");
+    if (bookmarkForm && listId) {
+      const baseUrl = bookmarkForm.getAttribute('data-base-url') || '/bookmarks/add/';
+      bookmarkForm.action = `${baseUrl}${listId}/`;
+    }
+  }
+
   // Function to open bookmark modal
   function openBookmarkModal(data) {
     // Populate modal fields
-    document.getElementById("modal-title").value = data.title || '';
-    document.getElementById("modal-author").value = data.author || '';
-    document.getElementById("modal-link").value = data.link || '';
-    document.getElementById("modal-published").value = data.published || '';
-    document.getElementById("modal-category").value = data.category || '';
-    document.getElementById("modal-citation").value = data.citation || '0';
+    const modalTitle = document.getElementById("modal-title");
+    const modalAuthor = document.getElementById("modal-author");
+    const modalLink = document.getElementById("modal-link");
+    const modalPublished = document.getElementById("modal-published");
+    const modalCategory = document.getElementById("modal-category");
+    const modalCitation = document.getElementById("modal-citation");
+    
+    if (modalTitle) modalTitle.value = data.title || '';
+    if (modalAuthor) modalAuthor.value = data.author || '';
+    if (modalLink) modalLink.value = data.link || '';
+    if (modalPublished) modalPublished.value = data.published || '';
+    if (modalCategory) modalCategory.value = data.category || '';
+    if (modalCitation) modalCitation.value = data.citation || '0';
 
     // Update form action if a list is selected
     const listSelect = document.getElementById("modal-list-id");
@@ -667,8 +1023,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Show modal
     const modal = document.getElementById("bookmarkModal");
-    modal.classList.remove("hidden");
-    modal.classList.add("flex");
+    if (modal) {
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
   }
 
   // Open modal if needed (after login redirect)
@@ -709,8 +1067,10 @@ document.addEventListener("DOMContentLoaded", function () {
   if (cancelBtn) {
     cancelBtn.addEventListener("click", () => {
       const modal = document.getElementById("bookmarkModal");
-      modal.classList.add("hidden");
-      modal.classList.remove("flex");
+      if (modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      }
     });
   }
 
@@ -725,7 +1085,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
- // Handle bookmark form submission
+  // Handle bookmark form submission
   const bookmarkForm = document.getElementById("bookmarkForm");
   if (bookmarkForm) {
     bookmarkForm.addEventListener("submit", async (e) => {
@@ -733,6 +1093,9 @@ document.addEventListener("DOMContentLoaded", function () {
       
       const formData = new FormData(bookmarkForm);
       const submitButton = bookmarkForm.querySelector('button[type="submit"]');
+      
+      if (!submitButton) return;
+      
       const originalText = submitButton.textContent;
       
       // Show loading state
@@ -748,13 +1111,19 @@ document.addEventListener("DOMContentLoaded", function () {
           },
         });
         
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         
         if (data.success) {
           // Close modal
           const modal = document.getElementById("bookmarkModal");
-          modal.classList.add("hidden");
-          modal.classList.remove("flex");
+          if (modal) {
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+          }
           
           // Show success message
           showToast("Paper saved to bookmarks successfully!", "success");
@@ -794,17 +1163,29 @@ document.addEventListener("DOMContentLoaded", function () {
       createListBtn.textContent = "Creating...";
       
       try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (!csrfToken) {
+          throw new Error("CSRF token not found");
+        }
+        
         const formData = new FormData();
         formData.append("name", listName);
-        formData.append("csrfmiddlewaretoken", document.querySelector('[name=csrfmiddlewaretoken]').value);
+        formData.append("csrfmiddlewaretoken", csrfToken.value);
         
-        const response = await fetch("{% url 'create_bookmark_list' %}", {
+        // Get the create list URL from a data attribute or construct it
+        const createListUrl = createListBtn.getAttribute('data-create-url') || '/bookmarks/lists/create/';
+        
+        const response = await fetch(createListUrl, {
           method: "POST",
           body: formData,
           headers: {
             "X-Requested-With": "XMLHttpRequest",
           },
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         
         const data = await response.json();
         
@@ -817,7 +1198,7 @@ document.addEventListener("DOMContentLoaded", function () {
           
           // Remove "No lists available" option if it exists
           const noListsOption = bookmarkListSelect.querySelector('option[disabled]');
-          if (noListsOption) {
+          if (noListsOption && noListsOption.textContent.includes('No lists')) {
             noListsOption.remove();
           }
           
@@ -859,7 +1240,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const searchInput = document.getElementById("searchInput");
       
       // Check if query is provided
-      if (!searchInput.value.trim()) {
+      if (!searchInput || !searchInput.value.trim()) {
         e.preventDefault();
         showToast("Please enter a search query", "error");
         return;
@@ -881,6 +1262,9 @@ document.addEventListener("DOMContentLoaded", function () {
         // Store original content to restore if needed
         submitButton.dataset.originalContent = '<i class="fas fa-search"></i>';
       }
+      
+      // Save scroll position before form submission
+      saveScrollPosition();
     });
   }
 
@@ -1008,7 +1392,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Debounced search input validation
   let validationTimeout;
-  if (mainSearchInput) {
+  if (mainSearchInput && searchForm) {
     mainSearchInput.addEventListener('input', function() {
       clearTimeout(validationTimeout);
       
@@ -1016,18 +1400,33 @@ document.addEventListener("DOMContentLoaded", function () {
         const value = this.value.trim();
         const submitButton = searchForm.querySelector('button[type="submit"]');
         
-        if (value.length > 0) {
-          submitButton.disabled = false;
-          submitButton.classList.remove('opacity-50');
-        } else {
-          submitButton.disabled = true;
-          submitButton.classList.add('opacity-50');
+        if (submitButton) {
+          if (value.length > 0) {
+            submitButton.disabled = false;
+            submitButton.classList.remove('opacity-50');
+          } else {
+            submitButton.disabled = true;
+            submitButton.classList.add('opacity-50');
+          }
         }
       }, 300);
     });
   }
 
+  // Initialize search button state
+  if (mainSearchInput && searchForm) {
+    const submitButton = searchForm.querySelector('button[type="submit"]');
+    if (submitButton) {
+      const initialValue = mainSearchInput.value.trim();
+      if (initialValue.length === 0) {
+        submitButton.disabled = true;
+        submitButton.classList.add('opacity-50');
+      }
+    }
+  }
+
   console.log('ReFindr search page initialized successfully');
+
 });
 </script>
 {% endblock %}

@@ -932,102 +932,113 @@ def autocomplete_suggestions(request):
     })
 
 # Alternative implementation if you want to store and retrieve actual search history
-@login_required
-@require_http_methods(["GET"])
-def user_search_history(request):
-    """
-    Get user's search history for autocomplete
-    """
-    # This assumes you have a SearchHistory model
-    # You'll need to create this model and save searches
+# @login_required
+# @require_http_methods(["GET"])
+# def user_search_history(request):
+#     """
+#     Get user's search history for autocomplete
+#     """
+#     # This assumes you have a SearchHistory model
+#     # You'll need to create this model and save searches
     
-    term = request.GET.get('term', '').strip().lower()
-    suggestions = []
+#     term = request.GET.get('term', '').strip().lower()
+#     suggestions = []
     
-    if len(term) >= 2:
-        # Example: If you have a SearchHistory model
-        # from .models import SearchHistory
-        # 
-        # recent_searches = SearchHistory.objects.filter(
-        #     user=request.user,
-        #     query__icontains=term
-        # ).order_by('-created_at')[:5]
-        # 
-        # suggestions = [search.query for search in recent_searches]
-        pass
+#     if len(term) >= 2:
+#         # Example: If you have a SearchHistory model
+#         # from .models import SearchHistory
+#         # 
+#         # recent_searches = SearchHistory.objects.filter(
+#         #     user=request.user,
+#         #     query__icontains=term
+#         # ).order_by('-created_at')[:5]
+#         # 
+#         # suggestions = [search.query for search in recent_searches]
+#         pass
     
-    return JsonResponse({
-        'suggestions': suggestions,
-        'total': len(suggestions)
-    })
+#     return JsonResponse({
+#         'suggestions': suggestions,
+#         'total': len(suggestions)
+#     })
 
 # Smart autocomplete that combines multiple sources
+import re
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+
+ENGLISH_SIMPLE_RE = re.compile(r'^[A-Za-z0-9\s\-\_\:\,\.\(\)\'"&/]+$')  # allows common punctuation
+
 @require_http_methods(["GET"])
 def smart_autocomplete(request):
     """
-    Advanced autocomplete that combines multiple sources
+    Advanced autocomplete that:
+      - filters to simple English-looking suggestions
+      - ranks exact prefix -> word-boundary -> contains -> fuzzy
+      - returns up to max_results (defaults to 5)
     """
     term = request.GET.get('term', '').strip().lower()
-    
     if len(term) < 2:
-        return JsonResponse({'suggestions': []})
-    
-    suggestions = []
-    
-    # 1. Exact prefix matches (highest priority)
-    exact_matches = [
-        keyword for keyword in ACADEMIC_KEYWORDS 
-        if keyword.lower().startswith(term)
-    ]
-    
-    # 2. Word boundary matches
+        return JsonResponse({'suggestions': [], 'total': 0})
+
+    try:
+        max_results = int(request.GET.get('limit', 5))
+    except ValueError:
+        max_results = 5
+
+    def is_english_like(s: str) -> bool:
+        # Simple heuristic: allow ASCII letters, numbers and common punctuation.
+        # This will drop non-Latin scripts. If you require more accuracy, use a language detection library.
+        return bool(ENGLISH_SIMPLE_RE.match(s))
+
+    # collect from both sources
+    pool = list(set(ACADEMIC_KEYWORDS + TRENDING_TOPICS))
+
+    # filter English-like only
+    pool = [p for p in pool if is_english_like(p)]
+
+    # normalization helpers
+    pool_lower_map = {p.lower(): p for p in pool}  # preserve original casing
+
+    # exact prefix matches
+    exact_matches = [orig for low, orig in pool_lower_map.items() if low.startswith(term)]
+    # word-boundary matches (term at a word boundary, but not prefix)
     word_matches = [
-        keyword for keyword in ACADEMIC_KEYWORDS 
-        if re.search(r'\b' + re.escape(term), keyword.lower())
-        and not keyword.lower().startswith(term)
+        orig for low, orig in pool_lower_map.items()
+        if re.search(r'\b' + re.escape(term), low) and not low.startswith(term)
     ]
-    
-    # 3. Trending topics
-    trending_matches = [
-        topic for topic in TRENDING_TOPICS 
-        if term in topic.lower()
+    # contains matches (term anywhere)
+    contains_matches = [
+        orig for low, orig in pool_lower_map.items()
+        if term in low and not low.startswith(term) and not re.search(r'\b' + re.escape(term), low)
     ]
-    
-    # 4. Fuzzy matches (for typos)
+
+    # simple fuzzy fallback for longer terms (very basic)
     fuzzy_matches = []
-    for keyword in ACADEMIC_KEYWORDS:
-        if len(term) >= 3:  # Only for longer terms
-            # Simple fuzzy matching - you can enhance this with libraries like fuzzywuzzy
-            keyword_lower = keyword.lower()
-            if (abs(len(term) - len(keyword_lower)) <= 2 and 
-                sum(1 for a, b in zip(term, keyword_lower) if a == b) / max(len(term), len(keyword_lower)) > 0.7):
-                fuzzy_matches.append(keyword)
-    
-    # Combine all suggestions with priorities
-    all_suggestions = []
-    
-    # Add exact matches first
-    all_suggestions.extend(exact_matches[:3])
-    
-    # Add word matches
-    all_suggestions.extend([m for m in word_matches if m not in all_suggestions][:3])
-    
-    # Add trending topics
-    all_suggestions.extend([m for m in trending_matches if m not in all_suggestions][:2])
-    
-    # Add fuzzy matches
-    all_suggestions.extend([m for m in fuzzy_matches if m not in all_suggestions][:2])
-    
-    # Limit total suggestions
-    suggestions = all_suggestions[:10]
-    
+    if len(term) >= 3:
+        for low, orig in pool_lower_map.items():
+            # prevent duplicates and obvious misses
+            if orig in exact_matches + word_matches + contains_matches:
+                continue
+            # simple character overlap ratio
+            match_ratio = sum(1 for a, b in zip(term, low) if a == b) / max(len(term), len(low))
+            if match_ratio > 0.6:
+                fuzzy_matches.append(orig)
+
+    # compose final prioritized list and limit
+    ordered = []
+    for src in (exact_matches, word_matches, contains_matches, fuzzy_matches):
+        for s in src:
+            if s not in ordered:
+                ordered.append(s)
+            if len(ordered) >= max_results:
+                break
+        if len(ordered) >= max_results:
+            break
+
+    # final formatting: keep original casing, optional title-case
+    suggestions = ordered[:max_results]
+
     return JsonResponse({
         'suggestions': suggestions,
-        'total': len(suggestions),
-        'categories': {
-            'exact': len(exact_matches),
-            'word': len(word_matches),
-            'trending': len(trending_matches),
-            'fuzzy': len(fuzzy_matches)
-        }
+        'total': len(suggestions)
     })

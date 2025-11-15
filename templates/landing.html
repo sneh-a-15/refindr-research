@@ -7,30 +7,41 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="min-h-screen" style="background: linear-gradient(135deg, #f5f1e8 0%, #fef7e0 100%);">
+<body class="min-h-screen" style="background: #fef7e0;">
     <!-- Header -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-amber-200">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <nav class="flex justify-between items-center py-4">
-                <a href="#" class="text-2xl font-bold text-amber-900">
-                    <i class="fas fa-search mr-2"></i>ReFindr
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-amber-200/50 shadow-xl">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav class="flex justify-between items-center py-4">
+            <!-- Logo with enhanced styling -->
+            <a href="#" class="group flex items-center text-3xl font-black text-amber-900 hover:text-amber-800 transition-all duration-300 transform hover:scale-105">
+                <i class="fas fa-search mr-3 text-amber-600 group-hover:rotate-12 transition-transform duration-300"></i>
+                <span class="bg-gradient-to-r from-amber-900 to-amber-700 bg-clip-text text-transparent">ReFindr</span>
+            </a>
+            
+            <!-- Navigation buttons with enhanced effects -->
+            <div class="flex gap-4">
+                <a href="{% url 'login' %}" class="group relative overflow-hidden bg-transparent border-2 border-amber-800 text-amber-900 hover:text-white px-8 py-3 rounded-2xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105">
+                    <span class="absolute inset-0 bg-amber-900 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out"></span>
+                    <span class="relative z-10 flex items-center">
+                        <i class="fas fa-sign-in-alt mr-2 group-hover:rotate-12 transition-transform duration-300"></i>
+                        Login
+                    </span>
                 </a>
-                <div class="flex gap-3">
-                    <a href="{% url 'login' %}" class="bg-transparent border-2 border-amber-900 text-amber-900 hover:bg-amber-900 hover:text-white px-6 py-2 rounded-xl transition-all font-medium">
-                        <i class="fas fa-sign-in-alt mr-2"></i>Login
-                    </a>
-                    <a href="{% url 'signup' %}" class="bg-amber-900 hover:bg-amber-800 text-white px-6 py-2 rounded-xl transition-all font-medium">
-                        <i class="fas fa-user-plus mr-2"></i>Sign Up
-                    </a>
-                </div>
-            </nav>
-        </div>
-    </header>
+                <a href="{% url 'signup' %}" class="group relative bg-gradient-to-r from-amber-900 to-amber-800 hover:from-amber-800 hover:to-amber-900 text-white px-8 py-3 rounded-2xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105">
+                    <span class="flex items-center">
+                        <i class="fas fa-user-plus mr-2 group-hover:bounce transition-transform duration-300"></i>
+                        Sign Up
+                    </span>
+                </a>
+            </div>
+        </nav>
+    </div>
+</header>
 
     <!-- Hero Section -->
-    <section class="pt-24 pb-16">
+   <section class="pt-40 pb-16">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
+            <div class="text-center mb-20">
                 <h1 class="text-5xl md:text-7xl font-bold text-amber-900 mb-6 leading-tight">
                     Search Academic Papers<br>
                     <span class="bg-gradient-to-r from-amber-700 to-amber-900 bg-clip-text text-transparent">Across All Databases</span>
@@ -40,30 +51,30 @@
                     Stop switching between platforms and discover the research that matters.
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                    <a href="{% url 'signup' %}" class="bg-amber-900 hover:bg-amber-800 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all transform hover:scale-105 hover:shadow-lg">
-                        <i class="fas fa-rocket mr-2"></i>Get Started Now
+                    <a href="{% url 'home' %}" class="bg-amber-900 hover:bg-amber-800 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all transform hover:scale-105 hover:shadow-lg">
+                        <i class="fas fa-rocket mr-2"></i>Try It Out Now!
                     </a>
-                    <a href="#features" class="bg-white/80 border-2 border-amber-200 text-amber-900 hover:bg-amber-50 px-8 py-4 rounded-2xl font-semibold text-lg transition-all">
+                    <a href="#features" class="bg-white/80 border-2 border-amber-400 text-amber-900 hover:bg-amber-50 px-8 py-4 rounded-2xl font-semibold text-lg transition-all">
                         <i class="fas fa-play mr-2"></i>Check Out The Features 
                     </a>
                 </div>
             </div>
 
             <!-- Stats -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
-                <div class="text-center bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-amber-200">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-5">
+                <div class="text-center bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-amber-400">
                     <div class="text-3xl font-bold text-amber-900 mb-2">10M+</div>
                     <div class="text-amber-700">Research Papers</div>
                 </div>
-                <div class="text-center bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-amber-200">
+                <div class="text-center bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-amber-400">
                     <div class="text-3xl font-bold text-amber-900 mb-2">5+</div>
                     <div class="text-amber-700">Data Sources</div>
                 </div>
-                <div class="text-center bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-amber-200">
+                <div class="text-center bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-amber-400">
                     <div class="text-3xl font-bold text-amber-900 mb-2">50K+</div>
                     <div class="text-amber-700">Researchers</div>
                 </div>
-                <div class="text-center bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-amber-200">
+                <div class="text-center bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-amber-400">
                     <div class="text-3xl font-bold text-amber-900 mb-2">Free</div>
                     <div class="text-amber-700">To Start</div>
                 </div>
@@ -82,15 +93,15 @@
             </div>
 
             <div class="grid md:grid-cols-3 gap-8 mb-16">
-                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-200 hover:shadow-xl transition-all transform hover:-translate-y-2">
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-400 hover:shadow-xl transition-all transform hover:-translate-y-2">
                     <div class="text-4xl text-amber-900 mb-4">
                         <i class="fas fa-layer-group"></i>
                     </div>
                     <h3 class="text-xl font-bold text-amber-900 mb-3">Multiple Sources</h3>
-                    <p class="text-amber-800">Search arXiv, Semantic Scholar, PubMed, Google Scholar, and IEEE Xplore simultaneously from one interface.</p>
+                    <p class="text-amber-800">Search arXiv, PubMed, Google Scholar, Elsevier and Springer simultaneously from one interface.</p>
                 </div>
 
-                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-200 hover:shadow-xl transition-all transform hover:-translate-y-2">
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-400 hover:shadow-xl transition-all transform hover:-translate-y-2">
                     <div class="text-4xl text-amber-900 mb-4">
                         <i class="fas fa-bolt"></i>
                     </div>
@@ -98,7 +109,7 @@
                     <p class="text-amber-800">Get results in seconds with our optimized search algorithms and cached database queries.</p>
                 </div>
 
-                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-200 hover:shadow-xl transition-all transform hover:-translate-y-2">
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-400 hover:shadow-xl transition-all transform hover:-translate-y-2">
                     <div class="text-4xl text-amber-900 mb-4">
                         <i class="fas fa-bookmark"></i>
                     </div>
@@ -106,7 +117,7 @@
                     <p class="text-amber-800">Bookmark papers, create collections, and organize your research with powerful tools.</p>
                 </div>
 
-                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-200 hover:shadow-xl transition-all transform hover:-translate-y-2">
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-400 hover:shadow-xl transition-all transform hover:-translate-y-2">
                     <div class="text-4xl text-amber-900 mb-4">
                         <i class="fas fa-filter"></i>
                     </div>
@@ -114,7 +125,7 @@
                     <p class="text-amber-800">Filter by date, citation count, author, journal, and more to find exactly what you need.</p>
                 </div>
 
-                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-200 hover:shadow-xl transition-all transform hover:-translate-y-2">
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-400 hover:shadow-xl transition-all transform hover:-translate-y-2">
                     <div class="text-4xl text-amber-900 mb-4">
                         <i class="fas fa-chart-line"></i>
                     </div>
@@ -122,7 +133,7 @@
                     <p class="text-amber-800">See citation counts, h-index metrics, and impact factors to evaluate research quality.</p>
                 </div>
 
-                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-200 hover:shadow-xl transition-all transform hover:-translate-y-2">
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-400 hover:shadow-xl transition-all transform hover:-translate-y-2">
                     <div class="text-4xl text-amber-900 mb-4">
                         <i class="fas fa-mobile-alt"></i>
                     </div>
@@ -174,7 +185,7 @@
                         <li><a href="#" class="hover:text-white">Export Tools</a></li>
                     </ul>
                 </div>
-                <div>
+                <!-- <div>
                     <h4 class="font-semibold mb-3">Resources</h4>
                     <ul class="space-y-2 text-amber-200">
                         <li><a href="#" class="hover:text-white">API Documentation</a></li>
@@ -182,7 +193,7 @@
                         <li><a href="#" class="hover:text-white">Research Guide</a></li>
                         <li><a href="#" class="hover:text-white">Blog</a></li>
                     </ul>
-                </div>
+                </div> -->
                 <div>
                     <h4 class="font-semibold mb-3">Connect</h4>
                     <div class="flex gap-4">
@@ -214,6 +225,7 @@
         /* Smooth scrolling */
         html {
             scroll-behavior: smooth;
+            scroll-padding-top: 8rem;
         }
         
         /* Source selection interactive styling */
