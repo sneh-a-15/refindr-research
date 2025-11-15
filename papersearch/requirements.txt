@@ -1,0 +1,11 @@
+Django>=4.2
+gunicorn
+whitenoise
+dj-database-url
+psycopg2-binary
+python-dotenv
+django-tailwind
+django-widget-tweaks
+requests
+pyrebase4
+setuptools
