@@ -113,10 +113,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # Use WhiteNoise in production
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
 STATICFILES_DIRS = [
-    BASE_DIR / "theme/static",
+    BASE_DIR / "theme" / "static",                # your built CSS sits here
+    BASE_DIR / "theme" / "static_src" / "src",    # Tailwind source (optional)
 ]
-STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
