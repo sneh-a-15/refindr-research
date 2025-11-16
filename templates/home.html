@@ -205,7 +205,7 @@
               class="text-amber-900 hover:text-amber-800 font-medium flex items-center"
             >
               <i class="fas fa-external-link-alt mr-1"></i>
-              View Full Paper
+              View Source
             </a>
             <div class="flex gap-3">
               {% if user.is_authenticated %}
@@ -232,13 +232,15 @@
               </a>
               {% endif %}
               {% if paper.pdf_link %}
-              <button
-                onclick="openPDFModal('{{ paper.pdf_link }}')"
+              <a
+                href="{{ paper.pdf_link }}"
+                target="_blank"
+                rel="noopener noreferrer"
                 class="bg-amber-900 hover:bg-amber-800 text-white px-4 py-2 rounded-lg transition-colors text-sm flex items-center"
               >
                 <i class="fas fa-file-pdf mr-1"></i>
                 View PDF
-              </button>
+              </a>
               {% endif %}
             </div>
           </div>
@@ -328,78 +330,6 @@
   </div>
 </div>
 
-<!-- PDF Modal -->
-<div id="pdfModalBackdrop" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-lg shadow-xl border border-amber-200 w-full max-w-6xl max-h-[90vh] relative flex flex-col">
-    <!-- Header -->
-    <div class="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
-      <h3 class="text-lg font-semibold text-gray-900">PDF Viewer</h3>
-      <button onclick="closePDFModal()" class="text-gray-400 hover:text-gray-600 text-xl">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-    
-    <!-- Loading indicator -->
-    <div id="pdfLoading" class="hidden flex items-center justify-center p-8">
-      <div class="flex items-center gap-3">
-        <i class="fas fa-spinner fa-spin text-amber-900 text-xl"></i>
-        <span class="text-amber-900">Loading PDF...</span>
-      </div>
-    </div>
-    
-    <!-- PDF Content -->
-    <!-- PDF Modal Backdrop -->
-<div id="pdfModalBackdrop" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-60 overflow-auto">
-  <!-- Modal Content -->
-  <div class="bg-white rounded-lg shadow-lg max-w-5xl w-full mx-auto my-8 relative flex flex-col max-h-[90vh] overflow-hidden">
-    
-    <!-- Close Button -->
-    <button onclick="closePDFModal()" class="absolute top-3 right-3 text-gray-500 hover:text-red-600 text-2xl font-bold z-10">
-      &times;
-    </button>
-
-    <!-- Modal Inner Content -->
-    <div class="flex-1 overflow-hidden flex flex-col">
-      
-      <!-- Canvas Container -->
-      <div class="flex-1 overflow-auto bg-gray-50 p-4">
-        <div class="flex justify-center">
-          <canvas id="pdfCanvas" class="border border-gray-200 rounded-lg shadow-sm max-w-full h-auto"></canvas>
-        </div>
-      </div>
-      
-      <!-- Navigation & Zoom Controls -->
-      <div class="flex items-center justify-between p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
-        <button onclick="prevPage()" class="px-4 py-2 bg-amber-900 text-white rounded-lg hover:bg-amber-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
-          <i class="fas fa-chevron-left mr-2"></i>Previous
-        </button>
-        
-        <div class="flex items-center gap-4">
-          <span class="text-sm text-amber-800">
-            Page <span id="page-num">1</span> of <span id="page-count">?</span>
-          </span>
-          
-          <!-- Zoom Controls -->
-          <div class="flex items-center gap-2">
-            <button onclick="zoomOut()" class="p-2 text-amber-900 hover:bg-amber-100 rounded" title="Zoom Out">
-              <i class="fas fa-search-minus"></i>
-            </button>
-            <span class="text-sm text-gray-600" id="zoom-level">100%</span>
-            <button onclick="zoomIn()" class="p-2 text-amber-900 hover:bg-amber-100 rounded" title="Zoom In">
-              <i class="fas fa-search-plus"></i>
-            </button>
-          </div>
-        </div>
-        
-        <button onclick="nextPage()" class="px-4 py-2 bg-amber-900 text-white rounded-lg hover:bg-amber-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
-          Next<i class="fas fa-chevron-right ml-2"></i>
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-
 <style>
   body {
     background-color: #f5f1e8;
@@ -487,195 +417,6 @@
   }
 </style>
 <script>
-let pdfDoc = null;
-let pageNum = 1;
-let pageRendering = false;
-let pageNumPending = null;
-let scale = 1.0;
-let canvas = null;
-let ctx = null;
-let pdfjsLoaded = false;
-let pdfjsLib = null;
-
-function loadPDFJS() {
-  return new Promise((resolve, reject) => {
-    if (pdfjsLoaded) {
-      resolve();
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-    script.onload = function () {
-      pdfjsLib = window['pdfjsLib'];
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      pdfjsLoaded = true;
-      resolve();
-    };
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
-}
-
-function openPDFModal(pdfUrl) {
-  const modal = document.getElementById('pdfModalBackdrop');
-  const loadingDiv = document.getElementById('pdfLoading');
-  canvas = document.getElementById('pdfCanvas');
-
-  if (!modal || !loadingDiv || !canvas) {
-    console.error('Required modal elements not found.');
-    return;
-  }
-
-  ctx = canvas.getContext('2d');
-  modal.classList.remove('hidden');
-  loadingDiv.classList.remove('hidden');
-
-  loadPDFJS().then(() => {
-    const container = canvas.parentElement;
-    const containerWidth = container.clientWidth - 32;
-
-    return pdfjsLib.getDocument(pdfUrl).promise;
-  }).then(pdf => {
-    pdfDoc = pdf;
-    document.getElementById('page-count').textContent = pdf.numPages;
-    return pdf.getPage(1);
-  }).then(page => {
-    const viewport = page.getViewport({ scale: 1.0 });
-    const containerWidth = canvas.parentElement.clientWidth - 32;
-    scale = Math.min(containerWidth / viewport.width, 1.5);
-    updateZoomLevel();
-    document.getElementById('pdfLoading').classList.add('hidden');
-    renderPage(pageNum);
-  }).catch(error => {
-    console.error('Error loading PDF:', error);
-    alert('Failed to load PDF.');
-    closePDFModal();
-  });
-}
-
-function closePDFModal() {
-  const modal = document.getElementById('pdfModalBackdrop');
-  const loadingDiv = document.getElementById('pdfLoading');
-
-  modal.classList.add('hidden');
-  loadingDiv.classList.add('hidden');
-
-  if (canvas) {
-    canvas.width = 0;
-    canvas.height = 0;
-  }
-
-  pdfDoc = null;
-  pageNum = 1;
-  pageRendering = false;
-  pageNumPending = null;
-  scale = 1.0;
-}
-
-function renderPage(num) {
-  if (!pdfDoc) return;
-  pageRendering = true;
-
-  pdfDoc.getPage(num).then(page => {
-    const viewport = page.getViewport({ scale });
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const renderContext = {
-      canvasContext: ctx,
-      viewport
-    };
-
-    return page.render(renderContext).promise;
-  }).then(() => {
-    pageRendering = false;
-    if (pageNumPending !== null) {
-      renderPage(pageNumPending);
-      pageNumPending = null;
-    }
-    updateNavigationButtons();
-  }).catch(error => {
-    console.error('Error rendering page:', error);
-    pageRendering = false;
-  });
-
-  document.getElementById('page-num').textContent = num;
-}
-
-function queueRenderPage(num) {
-  if (pageRendering) {
-    pageNumPending = num;
-  } else {
-    renderPage(num);
-  }
-}
-
-function prevPage() {
-  if (!pdfDoc || pageNum <= 1) return;
-  pageNum--;
-  queueRenderPage(pageNum);
-}
-
-function nextPage() {
-  if (!pdfDoc || pageNum >= pdfDoc.numPages) return;
-  pageNum++;
-  queueRenderPage(pageNum);
-}
-
-function zoomIn() {
-  scale = Math.min(scale * 1.2, 3.0);
-  updateZoomLevel();
-  queueRenderPage(pageNum);
-}
-
-function zoomOut() {
-  scale = Math.max(scale / 1.2, 0.5);
-  updateZoomLevel();
-  queueRenderPage(pageNum);
-}
-
-function updateZoomLevel() {
-  document.getElementById('zoom-level').textContent = Math.round(scale * 100) + '%';
-}
-
-function updateNavigationButtons() {
-  const prevBtn = document.querySelector('button[onclick="prevPage()"]');
-  const nextBtn = document.querySelector('button[onclick="nextPage()"]');
-
-  if (prevBtn) prevBtn.disabled = pageNum <= 1;
-  if (nextBtn) nextBtn.disabled = pageNum >= pdfDoc.numPages;
-}
-
-window.addEventListener('resize', () => {
-  if (pdfDoc && !document.getElementById('pdfModalBackdrop').classList.contains('hidden')) {
-    const containerWidth = canvas.parentElement.clientWidth - 32;
-    pdfDoc.getPage(1).then(page => {
-      const viewport = page.getViewport({ scale: 1.0 });
-      const optimalScale = Math.min(containerWidth / viewport.width, 1.5);
-      if (Math.abs(scale - optimalScale) > 0.1) {
-        scale = optimalScale;
-        updateZoomLevel();
-        queueRenderPage(pageNum);
-      }
-    });
-  }
-});
-
-document.addEventListener('keydown', function (e) {
-  if (!document.getElementById('pdfModalBackdrop').classList.contains('hidden')) {
-    switch (e.key) {
-      case 'ArrowLeft': e.preventDefault(); prevPage(); break;
-      case 'ArrowRight': e.preventDefault(); nextPage(); break;
-      case 'Escape': e.preventDefault(); closePDFModal(); break;
-      case '+':
-      case '=': if (e.ctrlKey || e.metaKey) { e.preventDefault(); zoomIn(); } break;
-      case '-': if (e.ctrlKey || e.metaKey) { e.preventDefault(); zoomOut(); } break;
-    }
-  }
-});
-
 document.addEventListener("DOMContentLoaded", function () {
   // Initialize checkbox states
   function initializeCheckboxes() {
@@ -700,14 +441,6 @@ document.addEventListener("DOMContentLoaded", function () {
   
   // Initialize checkboxes on page load
   initializeCheckboxes();
-
-  // Load PDF.js library
-  const script = document.createElement('script');
-  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-  script.onload = function() {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  };
-  document.head.appendChild(script);
 
   // Autocomplete functionality
   const searchInput = document.getElementById('searchInput');

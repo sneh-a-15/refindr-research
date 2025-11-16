@@ -769,33 +769,49 @@ def view_bookmark_lists(request):
 @login_required
 def add_bookmark(request, list_id=0):
     if request.method == 'POST':
-        title = request.POST.get('title')
-        author = request.POST.get('author')
-        link = request.POST.get('link')
-        published = request.POST.get('published')
-        category = request.POST.get('category')
-        citation_count = request.POST.get('citation_count', 0)
+        try:
+            title = request.POST.get('title')
+            author = request.POST.get('author')
+            link = request.POST.get('link')
+            published = request.POST.get('published')
+            category = request.POST.get('category')
+            citation_count = request.POST.get('citation_count', 0)
 
-        # Handle list
-        list_id = request.POST.get('list_id')
-        new_list_name = request.POST.get('new_list_name')
+            # Handle list
+            list_id = request.POST.get('list_id')
+            new_list_name = request.POST.get('new_list_name')
 
-        if new_list_name:
-            bookmark_list = BookmarkList.objects.create(user=request.user, name=new_list_name)
-        else:
-            bookmark_list = get_object_or_404(BookmarkList, id=list_id, user=request.user)
+            if new_list_name:
+                bookmark_list = BookmarkList.objects.create(user=request.user, name=new_list_name)
+            else:
+                bookmark_list = get_object_or_404(BookmarkList, id=list_id, user=request.user)
 
-        BookmarkedPaper.objects.create(
-            bookmark_list=bookmark_list,
-            title=title,
-            author=author,
-            link=link,
-            published=published,
-            category=category,
-            citation_count=citation_count
-        )
+            BookmarkedPaper.objects.create(
+                bookmark_list=bookmark_list,
+                title=title,
+                author=author,
+                link=link,
+                published=published,
+                category=category,
+                citation_count=citation_count
+            )
 
-        return redirect('view_bookmark_lists')
+            return JsonResponse({'success': True, 'message': 'Bookmark saved successfully'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@login_required
+def remove_bookmark(request, paper_id):
+    if request.method == 'POST':
+        try:
+            paper = get_object_or_404(BookmarkedPaper, id=paper_id, bookmark_list__user=request.user)
+            paper.delete()
+            messages.success(request, 'Paper removed from bookmark list')
+            return redirect('view_bookmark_lists')
+        except Exception as e:
+            messages.error(request, f'Error removing bookmark: {str(e)}')
+            return redirect('view_bookmark_lists')
+    return redirect('view_bookmark_lists')
 
 # views.py
 from django.shortcuts import render, redirect
