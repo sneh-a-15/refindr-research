@@ -8,10 +8,6 @@ __pycache__/
 *.pot
 *.pyc
 
-# Django Migrations
-*/migrations/*
-!*/migrations/__init__.py
-
 # Virtual Environment
 venv/
 /venv/
