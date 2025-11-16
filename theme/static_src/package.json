@@ -4,10 +4,10 @@
   "description": "",
   "scripts": {
   "start": "npm run dev",
-  "dev": "tailwindcss -i ./static_src/src/styles.css -o ./static/css/dist/styles.css --watch",
-  "build": "tailwindcss -i ./static_src/src/styles.css -o ./static/css/dist/styles.css --minify",
-  "build:clean": "rimraf ./static/css/dist",
-  "build:tailwind": "cross-env NODE_ENV=production postcss ./static_src/src/styles.css -o ./static/css/dist/styles.css --minify"
+  "dev": "npx tailwindcss -i ./static_src/src/styles.css -o ./static/css/dist/styles.css --watch",
+  "build": "npx tailwindcss -i ./static_src/src/styles.css -o ./static/css/dist/styles.css --minify",
+  "build:clean": "npx rimraf ./static/css/dist",
+  "build:tailwind": "cross-env NODE_ENV=production npx postcss ./static_src/src/styles.css -o ./static/css/dist/styles.css --minify"
 },
   "keywords": [],
   "author": "",
