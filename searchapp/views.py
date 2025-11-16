@@ -753,10 +753,32 @@ from .models import BookmarkList, BookmarkedPaper
 @login_required
 def create_bookmark_list(request):
     if request.method == 'POST':
-        name = request.POST.get('name')
-        if name:
-            BookmarkList.objects.create(user=request.user, name=name)
-        return redirect('view_bookmark_lists')
+        try:
+            name = request.POST.get('name')
+            if not name:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'error': 'List name is required'}, status=400)
+                messages.error(request, 'List name is required')
+                return redirect('view_bookmark_lists')
+            
+            bookmark_list = BookmarkList.objects.create(user=request.user, name=name)
+            
+            # Return JSON for AJAX requests
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'list_id': bookmark_list.id,
+                    'list_name': bookmark_list.name
+                })
+            
+            # Regular form submission
+            messages.success(request, f'List "{name}" created successfully')
+            return redirect('view_bookmark_lists')
+        except Exception as e:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'error': str(e)}, status=500)
+            messages.error(request, f'Error creating list: {str(e)}')
+            return redirect('view_bookmark_lists')
     return render(request, 'create_bookmark_list.html')
 
 

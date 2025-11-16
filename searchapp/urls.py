@@ -19,6 +19,7 @@ urlpatterns = [
     # path('firebase-login/', views.firebase_login, name='firebase_login'),
     path('bookmark-lists/', views.view_bookmark_lists, name='view_bookmark_lists'),
     path('bookmark-lists/create/', views.create_bookmark_list, name='create_bookmark_list'),
+    path('bookmarks/lists/create/', views.create_bookmark_list, name='create_bookmark_list_alt'),
     path('bookmarks/add/<int:list_id>/', views.add_bookmark, name='add_bookmark'),
     path('bookmarks/papers/<int:paper_id>/remove/', views.remove_bookmark, name='remove_bookmark'),
 ]
