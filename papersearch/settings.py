@@ -24,7 +24,7 @@ DEBUG = os.environ.get('DEBUG', 'true').lower() in ('1', 'true', 'yes')
 #     ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts.split(',') if h.strip()]
 # else:
 #     # sensible local defaults
-ALLOWED_HOSTS = ['web-production-ac18b.up.railway.app','localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['refindr.up.railway.app','localhost', '127.0.0.1']
 
 # Application definition
 
