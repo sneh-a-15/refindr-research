@@ -83,15 +83,6 @@ DATABASES = {
     'default': dj_database_url.parse(DATABASE_URL_FALLBACK, conn_max_age=600)
 }
 
-# If you prefer sqlite local fallback when no DB URL, you could instead:
-# if not os.environ.get('DATABASE_URL'):
-#     DATABASES = {
-#         'default': {
-#             'ENGINE': 'django.db.backends.sqlite3',
-#             'NAME': BASE_DIR / 'db.sqlite3',
-#         }
-#     }
-
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -117,7 +108,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 STATICFILES_DIRS = [
     BASE_DIR / "theme" / "static",                # your built CSS sits here
-    BASE_DIR / "theme" / "static_src" / "src",    # Tailwind source (optional)
+    # BASE_DIR / "theme" / "static_src" / "src",    # Tailwind source (optional)
 ]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 

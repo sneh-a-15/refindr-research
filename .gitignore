@@ -44,4 +44,4 @@ coverage.xml
 
 # Build
 build/
-dist/
+# dist/
